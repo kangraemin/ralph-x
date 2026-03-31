@@ -7,6 +7,8 @@ hide-from-slash-command-tool: "true"
 
 # Ralph-X Command
 
+IMPORTANT: **Respond in the same language the user is using.** If they write in Korean, respond in Korean. If English, respond in English. Match their language throughout the entire session.
+
 Execute the setup script to initialize Ralph-X:
 
 ```!
@@ -15,9 +17,9 @@ Execute the setup script to initialize Ralph-X:
 
 ## If No Prompt Was Provided
 
-The setup script will print a welcome message asking what task to work on. **Do NOT try to exit.** Instead:
+The setup script will print a welcome message. **Do NOT try to exit.** Instead:
 
-1. Ask the user: "What task should I work on?"
+1. Ask the user what task they want to work on (in their language)
 2. Wait for their response
 3. Once they respond, run the setup script again WITH their response as the prompt:
 
@@ -38,11 +40,11 @@ The stop hook loads the built-in pipeline. Start working on the task following t
 Enter the custom pipeline builder. Follow the stop hook's system messages:
 
 1. **If saved presets exist**: Show them and ask user to pick one or create new
-2. **Step builder**: Ask "Step 1: What should I do first?" → get answer
-3. **Skill binding**: Ask "Any skill to use? (e.g., /review, /test, or skip)" → get answer
-4. **Repeat**: Ask "Step N: Then?" until user says "done" / "끝"
+2. **Step builder**: Ask what the first step should be → get answer
+3. **Skill binding**: Ask if there's a skill to use for that step → get answer
+4. **Repeat**: Ask for next steps until user says they're done
 5. **Confirm**: Show the pipeline summary, ask to confirm
-6. **Save**: Ask "Save as preset? (name it, or skip)"
+6. **Save**: Ask if they want to save it as a preset
 
 ### During the Loop
 

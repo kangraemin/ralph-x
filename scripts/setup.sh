@@ -2,7 +2,6 @@
 
 # Ralph-X Setup Script
 # Interactive AI development loop with mode selection
-# No --mode flag — always shows selection menu
 
 set -euo pipefail
 
@@ -36,13 +35,9 @@ MODES (selected interactively at launch):
 
 EXAMPLES:
   /ralph-x Build a todo API
+  /ralph-x TODO API 만들어줘
   /ralph-x Build a REST API --max-iterations 30
   /ralph-x --completion-promise 'DONE' Fix the auth bug
-
-STOPPING:
-  /cancel-ralph-x              Cancel the active loop
-  --max-iterations              Auto-stop after N iterations
-  --completion-promise          Stop when promise is genuinely true
 HELP_EOF
       exit 0
       ;;
@@ -71,14 +66,13 @@ done
 
 PROMPT="${PROMPT_PARTS[*]:-}"
 
-# If no prompt, just show welcome — don't create state file yet
+# If no prompt, show welcome — don't create state file
 if [[ -z "$PROMPT" ]]; then
   cat <<'EOF'
 🔄 Ralph-X
 
-What task should I work on? Describe what you want to build or fix.
-
-After you tell me, I'll ask how you want to proceed.
+What would you like to work on?
+어떤 작업을 할까요?
 EOF
   exit 0
 fi
@@ -114,27 +108,19 @@ cat <<EOF
 🔄 Ralph-X activated!
 
 Task: $PROMPT
-Max iterations: $(if [[ $MAX_ITERATIONS -gt 0 ]]; then echo $MAX_ITERATIONS; else echo "unlimited"; fi)
-Completion promise: $(if [[ "$COMPLETION_PROMISE" != "null" ]]; then echo "${COMPLETION_PROMISE//\"/}"; else echo "none"; fi)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  How do you want to proceed?
+ 어떻게 진행할까요?
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
- 1. 🚀 Quick
-    Jump straight into coding. No planning.
-
- 2. 📋 Standard
-    Pre-process → Develop → Post-process.
-
- 3. 🔬 Thorough
-    Interview → Design → Develop → Review → Test.
-
- 4. 🎯 Custom
-    Build your own pipeline step by step.
+ 1. 🚀 Quick — 바로 코딩 / Just code it
+ 2. 📋 Standard — 사전처리 → 개발 → 후처리
+ 3. 🔬 Thorough — 인터뷰 → 설계 → 개발 → 리뷰 → 테스트
+ 4. 🎯 Custom — 직접 파이프라인 조합 / Build your own
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- Reply with a number (1-4) to start.
+ Pick a number (1-4)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 EOF
 
@@ -142,13 +128,11 @@ if [[ "$COMPLETION_PROMISE" != "null" ]]; then
   cat <<EOF
 
 ═══════════════════════════════════════════════════════════
-CRITICAL — Ralph-X Completion Promise
+CRITICAL — Completion Promise
 ═══════════════════════════════════════════════════════════
 
-To complete this loop, output: <promise>$COMPLETION_PROMISE</promise>
-
-The statement MUST be completely and unequivocally TRUE.
-Do NOT output false promises to exit the loop.
+To complete: <promise>$COMPLETION_PROMISE</promise>
+ONLY when the statement is completely TRUE.
 ═══════════════════════════════════════════════════════════
 EOF
 fi

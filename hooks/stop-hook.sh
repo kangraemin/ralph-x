@@ -320,24 +320,22 @@ fi
 update_field iteration "$NEXT_ITERATION"
 
 # ─── Build system message ─────────────────────────────────────────
-SYSTEM_MSG="🔄 Ralph-X iteration $NEXT_ITERATION"
+SYSTEM_MSG="🔄 Ralph-X iteration $NEXT_ITERATION | IMPORTANT: Respond in the same language the user uses. If Korean, respond in Korean. If English, respond in English."
 
 # Pipeline info
 if [[ "$PIPELINE_NAME" == "pending" ]]; then
-  SYSTEM_MSG="$SYSTEM_MSG | IMPORTANT: The user has NOT selected a mode yet. You MUST show the selection menu and wait for their choice. Do NOT start working on the task yet."
-  MENU_PROMPT="Show this menu to the user and ask them to pick a number (1-4):
+  SYSTEM_MSG="$SYSTEM_MSG | The user has NOT selected a mode yet. Show the selection menu and wait for their choice. Do NOT start working."
+  MENU_PROMPT="Show this menu and ask the user to pick (1-4):
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- How do you want to proceed?
+ How do you want to proceed? / 어떻게 진행할까요?
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
- 1. 🚀 Quick — Jump straight into coding. No planning.
- 2. 📋 Standard — Pre-process → Develop → Post-process.
- 3. 🔬 Thorough — Interview → Design → Develop → Review → Test.
- 4. 🎯 Custom — Build your own pipeline step by step.
+ 1. 🚀 Quick — 바로 코딩 / Just code it
+ 2. 📋 Standard — 사전처리 → 개발 → 후처리
+ 3. 🔬 Thorough — 인터뷰 → 설계 → 개발 → 리뷰 → 테스트
+ 4. 🎯 Custom — 직접 파이프라인 조합 / Build your own
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- Reply with a number (1-4) to start.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Task: $(awk '/^---$/{i++; next} i>=2' "$RALPH_STATE_FILE")"
