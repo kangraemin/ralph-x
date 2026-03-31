@@ -1,6 +1,6 @@
 ---
 description: "Start Ralph-X — interactive AI development loop with mode selection"
-argument-hint: "PROMPT [--mode quick|standard|thorough|custom] [--max-iterations N] [--completion-promise TEXT]"
+argument-hint: "PROMPT [--max-iterations N] [--completion-promise TEXT]"
 allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh:*)"]
 hide-from-slash-command-tool: "true"
 ---
@@ -13,41 +13,31 @@ Execute the setup script to initialize Ralph-X:
 "${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh" $ARGUMENTS
 ```
 
-## Mode Selection
+## After Setup
 
-If no `--mode` flag is provided, present these options to the user BEFORE starting:
+The setup script will show a selection menu. Wait for the user to pick a mode (1-4).
 
-```
-How do you want to proceed?
+### When user picks 1 (Quick), 2 (Standard), or 3 (Thorough)
 
-1. 🚀 Quick — Jump straight into coding. No planning, just do it.
-2. 📋 Standard — Pre-process → Develop → Post-process. Balanced approach.
-3. 🔬 Thorough — Interview → Design → Develop → Review → Test. Full pipeline.
-4. 🎯 Custom — Pick and combine stages yourself.
-```
+The stop hook loads the built-in pipeline. Start working on the task following the pipeline stages. Output `<ralph-advance-stage/>` when you complete each stage to move to the next one.
 
-Wait for the user's choice, then run the setup script with `--mode <choice>`.
+### When user picks 4 (Custom)
 
-## During the Loop
+Enter the custom pipeline builder. Follow the stop hook's system messages:
 
-Work on the task according to the selected mode's pipeline stages. When you try to exit, the Ralph-X stop hook will feed the SAME PROMPT back to you for the next iteration. You'll see your previous work in files and git history.
+1. **If saved presets exist**: Show them and ask user to pick one or create new
+2. **Step builder**: Ask "Step 1: What should I do first?" → get answer
+3. **Skill binding**: Ask "Any skill to use? (e.g., /review, /test, or skip)" → get answer
+4. **Repeat**: Ask "Step N: Then?" until user says "done" / "끝"
+5. **Confirm**: Show the pipeline summary, ask to confirm
+6. **Save**: Ask "Save as preset? (name it, or skip)"
 
-### Mode-Specific Behavior
+### During the Loop
 
-**Quick**: Start coding immediately. Iterate based on test results and errors.
-
-**Standard**:
-- Stage 1 (Pre): Analyze requirements, check existing code, plan approach
-- Stage 2 (Dev): Implement with TDD cycle
-- Stage 3 (Post): Review, refactor, document
-
-**Thorough**:
-- Stage 1 (Interview): Ask clarifying questions (up to 3 rounds)
-- Stage 2 (Design): Architecture and API design
-- Stage 3 (Dev): Implement incrementally
-- Stage 4 (Review): Self-review against requirements
-- Stage 5 (Test): Comprehensive testing and edge cases
-
-**Custom**: Follow the user-defined stage list from setup.
+- Follow the pipeline stages in order
+- The system message tells you which stage you're in
+- If a stage has a bound skill, invoke that skill
+- Output `<ralph-advance-stage/>` when a stage is complete
+- When all stages are done, the cycle restarts for the next iteration
 
 CRITICAL RULE: If a completion promise is set, you may ONLY output it when the statement is completely and unequivocally TRUE. Do not output false promises to escape the loop.

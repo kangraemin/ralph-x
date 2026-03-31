@@ -1,10 +1,10 @@
 ---
 description: "Cancel active Ralph-X loop"
-allowed-tools: ["Bash(rm .claude/ralph-x.local.md:*)"]
+allowed-tools: ["Bash(rm -f .claude/ralph-x.local.md .claude/ralph-x-stages.json:*)"]
 ---
 
 # Cancel Ralph-X
 
 ```!
-rm -f .claude/ralph-x.local.md && echo "🛑 Ralph-X loop cancelled."
+rm -f .claude/ralph-x.local.md .claude/ralph-x-stages.json && echo "🛑 Ralph-X loop cancelled."
 ```

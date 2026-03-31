@@ -2,7 +2,32 @@
 
 Interactive AI development loop with mode selection for Claude Code.
 
-Most Ralph loop tools force you into a single fixed pipeline. Ralph-X asks **"How do you want to proceed?"** before starting — choose the right pipeline for the task.
+Most Ralph loop tools force a single fixed pipeline. Ralph-X asks **"How do you want to proceed?"** every time — choose the right approach for the task.
+
+## Quick Start
+
+```bash
+# Install
+claude plugin add kangraemin/ralph-x
+
+# Run
+/ralph-x Build a REST API for todos
+```
+
+Every run starts with:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ How do you want to proceed?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 1. 🚀 Quick — Just code it.
+ 2. 📋 Standard — Pre → Dev → Post.
+ 3. 🔬 Thorough — Interview → Design → Dev → Review → Test.
+ 4. 🎯 Custom — Build your own pipeline.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
 
 ## Modes
 
@@ -11,65 +36,74 @@ Most Ralph loop tools force you into a single fixed pipeline. Ralph-X asks **"Ho
 | **Quick** | Code → Test → Iterate | Small tasks, prototypes |
 | **Standard** | Pre-process → Develop → Post-process | Features, bug fixes |
 | **Thorough** | Interview → Design → Develop → Review → Test | Complex features, greenfield |
-| **Custom** | You pick the stages | Everything else |
+| **Custom** | You build it | Everything else |
 
-## Quick Start
+## Custom Pipeline Builder
 
-```bash
-# Install as Claude Code plugin
-claude plugin add kangraemin/ralph-x
-
-# Start with interactive mode selection
-/ralph-x Build a REST API for todos
-
-# Or specify mode directly
-/ralph-x Build a REST API --mode thorough --max-iterations 30 --completion-promise "DONE"
-```
-
-When you run `/ralph-x` without `--mode`, you'll see:
+Pick **4. Custom** and Ralph-X walks you through:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- How do you want to proceed?
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Step 1: What should I do first?
+> 기존 코드 분석
 
- 1. 🚀 Quick — Jump straight into coding.
- 2. 📋 Standard — Pre → Dev → Post.
- 3. 🔬 Thorough — Interview → Design → Dev → Review → Test.
- 4. 🎯 Custom — Pick and combine stages yourself.
+Any skill to use? (e.g., /review, /test, or skip)
+> skip
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Step 2: Then?
+> 테스트 작성
+
+Any skill?
+> /test
+
+Step 3: Then?
+> 구현
+
+Any skill?
+> skip
+
+Step 4: Then?
+> done
+
+Pipeline: 기존 코드 분석 → 테스트 작성 (/test) → 구현
+
+Save as preset? (name it, or skip):
+> tdd-style
 ```
+
+### Presets
+
+Saved pipelines show up next time you pick Custom:
+
+```
+You have saved pipelines:
+ a. tdd-style (기존 코드 분석 → 테스트 작성 → 구현)
+
+Pick one, or "new" to create:
+```
+
+Presets are saved in `.claude/ralph-x-presets.json` per project.
+
+## Skill Binding
+
+Each pipeline stage can bind a skill (e.g., `/review`, `/test`, `/investigate`). When the loop reaches that stage, the bound skill is invoked automatically.
+
+Built-in Thorough mode ships with `/review` on Review and `/test` on Test stages.
+
+## Stage Advancement
+
+Claude outputs `<ralph-advance-stage/>` when a stage is complete. The loop tracks progress and moves to the next stage.
 
 ## Options
 
+```bash
+/ralph-x Build a CLI tool --max-iterations 30
+/ralph-x Fix auth bug --completion-promise "All tests passing"
+```
+
 | Flag | Description |
 |------|-------------|
-| `--mode <mode>` | Skip selection menu: `quick`, `standard`, `thorough`, `custom` |
 | `--max-iterations <n>` | Auto-stop after N iterations |
 | `--completion-promise <text>` | Stop when promise is genuinely true |
-
-## How It Works
-
-Ralph-X uses Claude Code's **Stop hook** to create a self-referential loop:
-
-1. You provide a task and choose a mode
-2. Claude works on the task following the mode's pipeline
-3. When Claude tries to exit, the stop hook intercepts
-4. The same prompt is fed back — Claude sees its previous work in files
-5. Repeat until completion (or max iterations)
-
-The key difference: the pipeline **guides** how Claude approaches each iteration.
-
-## Custom Mode
-
-Custom mode lets you compose your own pipeline from available stages:
-
-```
-interview → research → design → plan → develop → review → test → refactor → document
-```
-
-Pick any combination: `"research, develop, test"` or `"interview, plan, develop, review"`.
 
 ## Cancel
 
@@ -77,11 +111,14 @@ Pick any combination: `"research, develop, test"` or `"interview, plan, develop,
 /cancel-ralph-x
 ```
 
-## Why Ralph-X?
+## How It Works
 
-Every existing Ralph loop tool picks one approach and forces it on every task. But a prototype doesn't need a 5-stage pipeline, and a critical feature deserves more than "just code it."
-
-Ralph-X gives you the choice.
+1. You provide a task
+2. You pick a mode (or build a custom pipeline)
+3. Claude works on the task following the pipeline stages
+4. When Claude tries to exit, the stop hook feeds the same prompt back
+5. Claude sees its previous work in files and iterates
+6. Repeat until completion
 
 ## License
 

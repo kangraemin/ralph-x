@@ -1,0 +1,28 @@
+{
+  "quick": {
+    "label": "Code → Test → Iterate",
+    "stages": [
+      { "name": "Code", "skill": null },
+      { "name": "Test", "skill": null },
+      { "name": "Iterate", "skill": null }
+    ]
+  },
+  "standard": {
+    "label": "Pre-process → Develop → Post-process",
+    "stages": [
+      { "name": "Pre-process", "skill": null },
+      { "name": "Develop", "skill": null },
+      { "name": "Post-process", "skill": null }
+    ]
+  },
+  "thorough": {
+    "label": "Interview → Design → Develop → Review → Test",
+    "stages": [
+      { "name": "Interview", "skill": null },
+      { "name": "Design", "skill": null },
+      { "name": "Develop", "skill": null },
+      { "name": "Review", "skill": "/review" },
+      { "name": "Test", "skill": "/test" }
+    ]
+  }
+}
