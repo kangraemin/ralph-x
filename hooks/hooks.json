@@ -1,0 +1,15 @@
+{
+  "description": "Ralph-X stop hook for self-referential loops with mode-aware pipeline",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/stop-hook.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}
