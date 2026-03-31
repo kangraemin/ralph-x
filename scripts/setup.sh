@@ -71,9 +71,16 @@ done
 
 PROMPT="${PROMPT_PARTS[*]:-}"
 
-# If no prompt, set to "pending" — will ask user in the loop
+# If no prompt, just show welcome — don't create state file yet
 if [[ -z "$PROMPT" ]]; then
-  PROMPT="__AWAITING_PROMPT__"
+  cat <<'EOF'
+🔄 Ralph-X
+
+What task should I work on? Describe what you want to build or fix.
+
+After you tell me, I'll ask how you want to proceed.
+EOF
+  exit 0
 fi
 
 # Quote completion promise for YAML

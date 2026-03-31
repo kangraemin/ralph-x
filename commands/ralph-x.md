@@ -1,6 +1,6 @@
 ---
 description: "Start Ralph-X — interactive AI development loop with mode selection"
-argument-hint: "PROMPT [--max-iterations N] [--completion-promise TEXT]"
+argument-hint: "[PROMPT] [--max-iterations N] [--completion-promise TEXT]"
 allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh:*)"]
 hide-from-slash-command-tool: "true"
 ---
@@ -13,7 +13,19 @@ Execute the setup script to initialize Ralph-X:
 "${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh" $ARGUMENTS
 ```
 
-## After Setup
+## If No Prompt Was Provided
+
+The setup script will print a welcome message asking what task to work on. **Do NOT try to exit.** Instead:
+
+1. Ask the user: "What task should I work on?"
+2. Wait for their response
+3. Once they respond, run the setup script again WITH their response as the prompt:
+
+```
+"${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh" <user's response>
+```
+
+## After Setup (With Prompt)
 
 The setup script will show a selection menu. Wait for the user to pick a mode (1-4).
 
