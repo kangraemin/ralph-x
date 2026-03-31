@@ -1,25 +1,36 @@
-# Ralph-X
+<p align="center">
+  <h1 align="center">Ralph-X</h1>
+  <p align="center">
+    <strong>Interactive AI development loop with mode selection</strong>
+  </p>
+  <p align="center">
+    Choose your pipeline before you start. Bind skills to stages. Save and reuse.
+  </p>
+  <p align="center">
+    <a href="#quick-start">Getting Started</a> · <a href="README.ko.md">한국어</a> · <a href="https://github.com/kangraemin/ralph-x/issues">Issues</a>
+  </p>
+  <p align="center">
+    <a href="https://github.com/kangraemin/ralph-x/blob/main/LICENSE"><img src="https://img.shields.io/github/license/kangraemin/ralph-x?style=for-the-badge" alt="License"></a>
+    <a href="https://github.com/kangraemin/ralph-x/releases"><img src="https://img.shields.io/github/v/release/kangraemin/ralph-x?style=for-the-badge&label=version" alt="Version"></a>
+    <a href="https://github.com/kangraemin/ralph-x/stargazers"><img src="https://img.shields.io/github/stars/kangraemin/ralph-x?style=for-the-badge" alt="Stars"></a>
+  </p>
+</p>
 
-Interactive AI development loop with mode selection for Claude Code.
+---
 
-Most Ralph loop tools force a single fixed pipeline. Ralph-X asks **"How do you want to proceed?"** every time — choose the right approach for the task.
+Most Ralph tools force a single fixed pipeline. Ralph-X asks **"How do you want to proceed?"** every time — pick the right approach for the task, bind skills to stages, save your pipelines as presets.
+
+Built as a **Claude Code plugin** (skill + stop hook), not a `claude -p` bash loop. This means full access to skills, MCP servers, and live conversation — inside the loop.
 
 ## Quick Start
 
 ```bash
-# Add marketplace
+# Add marketplace & install
 claude plugin marketplace add kangraemin/ralph-x
-
-# Install
 claude plugin install ralph-x@ralph-x
 
 # Run
 /ralph-x Build a REST API for todos
-```
-
-Or test locally:
-```bash
-claude --plugin-dir /path/to/ralph-x
 ```
 
 Every run starts with:
@@ -37,76 +48,71 @@ Every run starts with:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-## Modes
+## Key Features
 
-| Mode | Pipeline | Best for |
-|------|----------|----------|
-| **Quick** | Code → Test → Iterate | Small tasks, prototypes |
-| **Standard** | Pre-process → Develop → Post-process | Features, bug fixes |
-| **Thorough** | Interview → Design → Develop → Review → Test | Complex features, greenfield |
-| **Custom** | You build it | Everything else |
+- **Interactive mode selection** — choose your workflow, don't get one forced on you
+- **Skill binding** — attach `/review`, `/test`, or any skill to pipeline stages
+- **Custom pipeline builder** — compose stages step by step, conversationally
+- **Presets** — save and reuse your custom pipelines across sessions
+- **Live session** — skills, MCP servers, and user interaction available mid-loop
+
+## Why Not `claude -p`?
+
+| | `claude -p` loop | Ralph-X |
+|---|---|---|
+| **Implementation** | Bash `while true` | Claude Code plugin (skill + hook) |
+| **Session** | Non-interactive, fresh context each run | Interactive, persistent session |
+| **Skills** | Not available | Bind to any stage |
+| **MCP servers** | Not available | Full access |
+| **User interaction** | None | Talk to Claude mid-loop |
+| **Pipeline** | Single fixed prompt | Choose or build your own |
 
 ## Custom Pipeline Builder
 
-Pick **4. Custom** and Ralph-X walks you through:
+Pick **Custom** and build your pipeline conversationally:
 
 ```
 Step 1: What should I do first?
-> 기존 코드 분석
+> Analyze existing code
 
-Any skill to use? (e.g., /review, /test, or skip)
-> skip
+Any skill to use? (e.g., /review, or skip)
+> /review
 
 Step 2: Then?
-> 테스트 작성
+> Write tests
 
 Any skill?
 > /test
 
 Step 3: Then?
-> 구현
-
-Any skill?
-> skip
+> Implement
 
 Step 4: Then?
 > done
 
-Pipeline: 기존 코드 분석 → 테스트 작성 (/test) → 구현
+Pipeline: Analyze existing code (/review) → Write tests (/test) → Implement
 
-Save as preset? (name it, or skip):
+Save as preset? (name it):
 > tdd-style
 ```
 
-### Presets
+Saved presets show up next time you pick Custom.
 
-Saved pipelines show up next time you pick Custom:
+## Architecture
 
 ```
-You have saved pipelines:
- a. tdd-style (기존 코드 분석 → 테스트 작성 → 구현)
-
-Pick one, or "new" to create:
+/ralph-x (Skill)          →  setup.sh creates state + shows menu
+     ↓
+stop-hook.sh (Stop Hook)  →  intercepts exit, reads transcript,
+                              detects mode/stage, blocks exit,
+                              feeds prompt back with stage info
+     ↓
+State Files               →  ralph-x.local.md  (iteration + config)
+                              ralph-x-stages.json (pipeline stages)
+                              ralph-x-presets.json (saved pipelines)
 ```
-
-Presets are saved in `.claude/ralph-x-presets.json` per project.
-
-## Skill Binding
-
-Each pipeline stage can bind a skill (e.g., `/review`, `/test`, `/investigate`). When the loop reaches that stage, the bound skill is invoked automatically.
-
-Built-in Thorough mode ships with `/review` on Review and `/test` on Test stages.
-
-## Stage Advancement
-
-Claude outputs `<ralph-advance-stage/>` when a stage is complete. The loop tracks progress and moves to the next stage.
 
 ## Options
-
-```bash
-/ralph-x Build a CLI tool --max-iterations 30
-/ralph-x Fix auth bug --completion-promise "All tests passing"
-```
 
 | Flag | Description |
 |------|-------------|
@@ -118,77 +124,6 @@ Claude outputs `<ralph-advance-stage/>` when a stage is complete. The loop track
 ```bash
 /cancel-ralph-x
 ```
-
-## Why Not `claude -p` Loop?
-
-Most Ralph tools use a bash `while true` loop with `claude -p` (non-interactive mode):
-
-```bash
-# Traditional Ralph
-while true; do
-  claude -p "Build a todo API"
-done
-```
-
-This works, but `claude -p` is non-interactive. You can't use skills, MCP servers, or talk to the agent mid-loop.
-
-**Ralph-X takes a different approach.** It's a Claude Code **plugin** (skill + stop hook) that runs inside your live session:
-
-| | `claude -p` loop | Ralph-X |
-|---|---|---|
-| **Implementation** | Bash `while true` | Claude Code plugin (skill + hook) |
-| **Session** | Non-interactive, new context each run | Interactive, persistent session |
-| **Skills** (`/review`, `/test`, ...) | Not available | Bind to any pipeline stage |
-| **MCP servers** | Not available | Full access |
-| **User interaction** | None — runs blind | Talk to Claude mid-loop |
-| **Pipeline** | Single fixed prompt | Choose or build your own |
-| **Presets** | None | Save and reuse custom pipelines |
-
-## How It Works
-
-Ralph-X is built on two Claude Code primitives: **skills** and **stop hooks**.
-
-### Architecture
-
-```
-┌─────────────────────────────────────────┐
-│  /ralph-x (Skill)                       │
-│  ┌───────────────────────────────────┐  │
-│  │ setup.sh                          │  │
-│  │ → Show mode selection menu        │  │
-│  │ → Create state file               │  │
-│  │   (.claude/ralph-x.local.md)      │  │
-│  └───────────────────────────────────┘  │
-│                                         │
-│  ┌───────────────────────────────────┐  │
-│  │ stop-hook.sh (Stop Hook)          │  │
-│  │ → Intercept session exit          │  │
-│  │ → Read state + transcript         │  │
-│  │ → Detect mode selection / stage   │  │
-│  │ → Block exit, feed prompt back    │  │
-│  │ → Track iteration + stage index   │  │
-│  └───────────────────────────────────┘  │
-│                                         │
-│  ┌───────────────────────────────────┐  │
-│  │ State Files                       │  │
-│  │ → ralph-x.local.md (YAML + prompt)│  │
-│  │ → ralph-x-stages.json (pipeline)  │  │
-│  │ → ralph-x-presets.json (saved)    │  │
-│  └───────────────────────────────────┘  │
-└─────────────────────────────────────────┘
-```
-
-### Flow
-
-1. **User runs `/ralph-x`** → `setup.sh` creates state file + shows menu
-2. **User picks a mode** → Claude responds, then tries to exit
-3. **Stop hook fires** → reads transcript, detects user's choice, loads pipeline
-4. **Stop hook blocks exit** → feeds same prompt back with stage info in system message
-5. **Claude works on the task** → follows pipeline stages, uses bound skills
-6. **Claude outputs `<ralph-advance-stage/>`** → stop hook increments stage
-7. **Repeat** until max iterations or completion promise
-
-The key insight: by running inside a live session instead of `claude -p`, every feature of Claude Code — skills, MCP, tools, conversation — is available inside the loop.
 
 ## License
 
