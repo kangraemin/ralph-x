@@ -320,43 +320,96 @@ SYSTEM_MSG="🔄 Ralph-X iteration $NEXT_ITERATION"
 
 # Pipeline info
 if [[ "$PIPELINE_NAME" == "pending" ]]; then
-  SYSTEM_MSG="$SYSTEM_MSG | Awaiting mode selection (1-4)"
+  SYSTEM_MSG="$SYSTEM_MSG | IMPORTANT: The user has NOT selected a mode yet. You MUST show the selection menu and wait for their choice. Do NOT start working on the task yet."
+  MENU_PROMPT="Show this menu to the user and ask them to pick a number (1-4):
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ How do you want to proceed?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 1. 🚀 Quick — Jump straight into coding. No planning.
+ 2. 📋 Standard — Pre-process → Develop → Post-process.
+ 3. 🔬 Thorough — Interview → Design → Develop → Review → Test.
+ 4. 🎯 Custom — Build your own pipeline step by step.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Reply with a number (1-4) to start.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Task: $(awk '/^---$/{i++; next} i>=2' "$RALPH_STATE_FILE")"
+
+  jq -n \
+    --arg prompt "$MENU_PROMPT" \
+    --arg msg "$SYSTEM_MSG" \
+    '{
+      "decision": "block",
+      "reason": $prompt,
+      "systemMessage": $msg
+    }'
+  exit 0
 elif [[ "$PIPELINE_NAME" == "custom" ]] && [[ "$BUILDER_PHASE" != "null" ]] && [[ -n "$BUILDER_PHASE" ]]; then
-  # Builder is active
+  # Builder is active — build prompt for each phase
+  BUILDER_PROMPT=""
   case "$BUILDER_PHASE" in
     awaiting_presets)
-      # Build preset list for display
       PRESET_LIST=""
       if [[ -f "$RALPH_PRESETS_FILE" ]]; then
-        PRESET_LIST=$(jq -r '.presets | to_entries | to_entries[] | "\(.key + 97 | implode). \(.value.key) (\(.value.value.label))"' "$RALPH_PRESETS_FILE" 2>/dev/null | head -10)
+        PRESET_LIST=$(jq -r '.presets | to_entries[] | "\(.key): \(.value.label)"' "$RALPH_PRESETS_FILE" 2>/dev/null | head -10)
       fi
-      SYSTEM_MSG="$SYSTEM_MSG | Custom: You have saved pipelines. Show them to user and ask to pick one or create new."
-      if [[ -n "$PRESET_LIST" ]]; then
-        SYSTEM_MSG="$SYSTEM_MSG | Presets: $PRESET_LIST"
-      fi
+      SYSTEM_MSG="$SYSTEM_MSG | Custom builder: awaiting preset selection"
+      BUILDER_PROMPT="You have saved pipelines:
+
+$PRESET_LIST
+
+Pick one by name, or say 'new' to create a new pipeline."
       ;;
     awaiting_step)
       STEP_COUNT=$(jq 'length' "$RALPH_STAGES_FILE" 2>/dev/null || echo 0)
       NEXT_STEP=$((STEP_COUNT + 1))
       if [[ $STEP_COUNT -gt 0 ]]; then
         CURRENT_PIPELINE=$(jq -r '[.[].name] | join(" → ")' "$RALPH_STAGES_FILE")
-        SYSTEM_MSG="$SYSTEM_MSG | Custom builder: Current pipeline: $CURRENT_PIPELINE | Ask: Step $NEXT_STEP: Then? (or 'done' to finish)"
+        SYSTEM_MSG="$SYSTEM_MSG | Custom builder: pipeline so far: $CURRENT_PIPELINE"
+        BUILDER_PROMPT="Current pipeline: $CURRENT_PIPELINE
+
+Step $NEXT_STEP: Then? (or say 'done' / '끝' to finish)"
       else
-        SYSTEM_MSG="$SYSTEM_MSG | Custom builder: Ask user — Step 1: What should I do first?"
+        SYSTEM_MSG="$SYSTEM_MSG | Custom builder: awaiting first step"
+        BUILDER_PROMPT="Let's build your pipeline.
+
+Step 1: What should I do first?"
       fi
       ;;
     awaiting_skill)
       LAST_STAGE_NAME=$(jq -r 'last.name' "$RALPH_STAGES_FILE")
-      SYSTEM_MSG="$SYSTEM_MSG | Custom builder: Ask user — Any skill to use for '$LAST_STAGE_NAME'? (e.g., /review, /test, or skip)"
+      SYSTEM_MSG="$SYSTEM_MSG | Custom builder: awaiting skill for '$LAST_STAGE_NAME'"
+      BUILDER_PROMPT="Any skill to use for '$LAST_STAGE_NAME'? (e.g., /review, /test, or skip)"
       ;;
     confirm)
-      PIPELINE_SUMMARY=$(jq -r '[.[] | if .skill then "\(.name) → \(.skill)" else .name end] | join(" → ")' "$RALPH_STAGES_FILE")
-      SYSTEM_MSG="$SYSTEM_MSG | Custom builder: Show pipeline to user and ask to confirm: $PIPELINE_SUMMARY"
+      PIPELINE_SUMMARY=$(jq -r '[.[] | if .skill then "\(.name) (\(.skill))" else .name end] | join(" → ")' "$RALPH_STAGES_FILE")
+      SYSTEM_MSG="$SYSTEM_MSG | Custom builder: awaiting confirmation"
+      BUILDER_PROMPT="Your pipeline: $PIPELINE_SUMMARY
+
+Looks good? (yes/no)"
       ;;
     save)
-      SYSTEM_MSG="$SYSTEM_MSG | Custom builder: Ask user — Save this as a preset? (give it a name, or skip)"
+      SYSTEM_MSG="$SYSTEM_MSG | Custom builder: awaiting preset name"
+      BUILDER_PROMPT="Save this as a preset? Give it a name, or say 'skip' to start without saving."
       ;;
   esac
+
+  # Output builder prompt and exit early
+  if [[ -n "$BUILDER_PROMPT" ]]; then
+    update_field iteration "$NEXT_ITERATION"
+    jq -n \
+      --arg prompt "$BUILDER_PROMPT" \
+      --arg msg "$SYSTEM_MSG" \
+      '{
+        "decision": "block",
+        "reason": $prompt,
+        "systemMessage": $msg
+      }'
+    exit 0
+  fi
 else
   # Normal pipeline execution
   if [[ -f "$RALPH_STAGES_FILE" ]]; then
