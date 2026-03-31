@@ -109,15 +109,8 @@ started_at: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 $PROMPT
 EOF
 
-# Output setup message
-if [[ "$PROMPT" == "__AWAITING_PROMPT__" ]]; then
-  cat <<'EOF'
-🔄 Ralph-X activated!
-
-What task should I work on? Describe what you want to build or fix.
-EOF
-else
-  cat <<EOF
+# Output setup message + selection menu
+cat <<EOF
 🔄 Ralph-X activated!
 
 Task: $PROMPT
@@ -144,7 +137,6 @@ Completion promise: $(if [[ "$COMPLETION_PROMISE" != "null" ]]; then echo "${COM
  Reply with a number (1-4) to start.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 EOF
-fi
 
 if [[ "$COMPLETION_PROMISE" != "null" ]]; then
   cat <<EOF

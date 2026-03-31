@@ -1,7 +1,7 @@
 {
   "name": "ralph-x",
   "description": "Interactive AI development loop with mode selection — choose your pipeline before you start",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "author": {
     "name": "kangraemin",
     "email": "kangraemin@gmail.com"
