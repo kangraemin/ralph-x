@@ -1,5 +1,5 @@
 {
-  "description": "Ralph-X stop hook for self-referential loops with mode-aware pipeline",
+  "description": "Ralph-X hooks — stop hook for loop, pretool hook for setup guard",
   "hooks": {
     "Stop": [
       {
@@ -7,6 +7,16 @@
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/stop-hook.sh\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/pretool-hook.sh\""
           }
         ]
       }
