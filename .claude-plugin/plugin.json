@@ -1,0 +1,13 @@
+{
+  "name": "ralph-x",
+  "description": "Interactive AI development loop with mode selection — choose your pipeline before you start",
+  "version": "0.1.0",
+  "author": {
+    "name": "kangraemin",
+    "email": "kangraemin@gmail.com"
+  },
+  "keywords": ["ralph", "loop", "pipeline", "interactive", "mode-selection"],
+  "homepage": "https://github.com/kangraemin/ralph-x",
+  "repository": "https://github.com/kangraemin/ralph-x",
+  "license": "MIT"
+}

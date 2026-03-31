@@ -7,11 +7,19 @@ Most Ralph loop tools force a single fixed pipeline. Ralph-X asks **"How do you 
 ## Quick Start
 
 ```bash
+# Add marketplace
+claude plugin marketplace add kangraemin/ralph-x
+
 # Install
-claude plugin add kangraemin/ralph-x
+claude plugin install ralph-x@ralph-x
 
 # Run
 /ralph-x Build a REST API for todos
+```
+
+Or test locally:
+```bash
+claude --plugin-dir /path/to/ralph-x
 ```
 
 Every run starts with:
