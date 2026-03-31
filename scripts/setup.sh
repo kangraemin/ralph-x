@@ -27,17 +27,10 @@ OPTIONS:
   --completion-promise '<text>'  Phrase that signals completion (USE QUOTES)
   -h, --help                     Show this help
 
-MODES (selected interactively at launch):
-  1. Quick      — Jump straight into coding.
-  2. Standard   — Pre-process → Develop → Post-process.
-  3. Thorough   — Interview → Design → Develop → Review → Test.
-  4. Custom     — Build your own pipeline step by step.
-
 EXAMPLES:
   /ralph-x Build a todo API
   /ralph-x TODO API 만들어줘
   /ralph-x Build a REST API --max-iterations 30
-  /ralph-x --completion-promise 'DONE' Fix the auth bug
 HELP_EOF
       exit 0
       ;;
@@ -84,7 +77,8 @@ else
   COMPLETION_PROMISE_YAML="null"
 fi
 
-# Create state file — always starts with pipeline_name: pending
+# Create state file
+# setup_phase: mode_select → iterations → checklist → running
 mkdir -p .claude
 
 cat > .claude/ralph-x.local.md <<EOF
@@ -93,6 +87,7 @@ active: true
 iteration: 1
 pipeline_name: pending
 current_stage_index: 0
+setup_phase: mode_select
 builder_phase: null
 session_id: ${CLAUDE_CODE_SESSION_ID:-}
 max_iterations: $MAX_ITERATIONS
@@ -103,6 +98,9 @@ started_at: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 $PROMPT
 EOF
 
+# Initialize empty checklist
+echo '[]' > .claude/ralph-x-checklist.json
+
 # Output setup message + selection menu
 cat <<EOF
 🔄 Ralph-X activated!
@@ -110,8 +108,7 @@ cat <<EOF
 Task: $PROMPT
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- How do you want to proceed?
- 어떻게 진행할까요?
+ How do you want to proceed? / 어떻게 진행할까요?
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
  1. 🚀 Quick — 바로 코딩 / Just code it
@@ -123,16 +120,3 @@ Task: $PROMPT
  Pick a number (1-4)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 EOF
-
-if [[ "$COMPLETION_PROMISE" != "null" ]]; then
-  cat <<EOF
-
-═══════════════════════════════════════════════════════════
-CRITICAL — Completion Promise
-═══════════════════════════════════════════════════════════
-
-To complete: <promise>$COMPLETION_PROMISE</promise>
-ONLY when the statement is completely TRUE.
-═══════════════════════════════════════════════════════════
-EOF
-fi
