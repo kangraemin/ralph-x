@@ -89,7 +89,7 @@ pipeline_name: pending
 current_stage_index: 0
 setup_phase: mode_select
 builder_phase: null
-session_id: ${CLAUDE_CODE_SESSION_ID:-}
+session_id: "ralph-x-$(date +%s)-$$"
 max_iterations: $MAX_ITERATIONS
 completion_promise: $COMPLETION_PROMISE_YAML
 started_at: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"

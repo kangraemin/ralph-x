@@ -35,10 +35,11 @@ SETUP_PHASE=$(get_field setup_phase)
 BUILDER_PHASE=$(get_field builder_phase)
 COMPLETION_PROMISE=$(get_field completion_promise)
 
-# Session isolation — only check if both sides have session IDs
+# Session isolation — ralph-x generates its own ID in setup.sh
+# The state file always has a ralph-x-* ID if created by setup.sh
+# If state file has no session_id at all, it's corrupted — skip
 STATE_SESSION=$(get_field session_id)
-HOOK_SESSION=$(echo "$HOOK_INPUT" | jq -r '.session_id // ""')
-if [[ -n "$STATE_SESSION" ]] && [[ -n "$HOOK_SESSION" ]] && [[ "$STATE_SESSION" != "$HOOK_SESSION" ]]; then
+if [[ -z "$STATE_SESSION" ]]; then
   exit 0
 fi
 
