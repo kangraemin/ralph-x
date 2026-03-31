@@ -38,22 +38,27 @@ If no prompt was provided, ask the user what they want to work on, then re-run s
 - If unsure about something, pick the best option and proceed
 - Only pause if something is truly impossible without user input
 
-## Checklist Tags
+## Tags Reference
 
-When you complete a checklist item, output the tag inline:
-
+**Checklist complete** — when a condition is met:
 ```
 Tests are all passing. <ralph-check id="0"/>
 ```
 
-The stop hook reads these tags and marks items as done.
-
-## Stage Tags
-
-When a pipeline stage is complete:
-
+**Stage complete** — when a pipeline stage is done:
 ```
 Pre-processing complete. <ralph-advance-stage/>
 ```
+
+**Iteration log** — at the END of every response, write a brief summary:
+```
+<ralph-log>
+- Analyzed 52 OOF files
+- Best single model: RealMLP (0.91945)
+- Implemented Hill Climbing ensemble
+- New best: 0.91964 (+0.00019)
+</ralph-log>
+```
+This log is saved to `.claude/ralph-x-log.md` and fed back to you in subsequent iterations. Even if context is compressed, you can read the log to continue where you left off.
 
 CRITICAL RULE: If a completion promise is set, output it ONLY when genuinely TRUE.

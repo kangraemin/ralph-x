@@ -98,8 +98,12 @@ started_at: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 $PROMPT
 EOF
 
-# Initialize empty checklist
+# Initialize empty checklist and log
 echo '[]' > .claude/ralph-x-checklist.json
+echo "# Ralph-X Work Log" > .claude/ralph-x-log.md
+echo "" >> .claude/ralph-x-log.md
+echo "Task: $PROMPT" >> .claude/ralph-x-log.md
+echo "Started: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .claude/ralph-x-log.md
 
 # Output setup message + selection menu
 cat <<EOF

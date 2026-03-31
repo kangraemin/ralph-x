@@ -464,6 +464,7 @@ fi
 # ─── RUNNING: autonomous loop ─────────────────────────────────────
 NEXT_ITERATION=$((ITERATION + 1))
 PROMPT_TEXT=$(awk '/^---$/{i++; next} i>=2' "$RALPH_STATE_FILE")
+RALPH_LOG_FILE=".claude/ralph-x-log.md"
 
 if [[ -z "$PROMPT_TEXT" ]]; then
   echo "⚠️  Ralph-X: No prompt found. Stopping." >&2
@@ -471,12 +472,41 @@ if [[ -z "$PROMPT_TEXT" ]]; then
   exit 0
 fi
 
+# Append previous iteration's summary to log (extracted from assistant output)
+# Extract text between <ralph-log>...</ralph-log> tags
+if [[ -n "$LAST_ASSISTANT" ]]; then
+  LOG_ENTRY=$(echo "$LAST_ASSISTANT" | perl -0777 -pe 's/.*?<ralph-log>(.*?)<\/ralph-log>.*/$1/s' 2>/dev/null || echo "")
+  if [[ -n "$LOG_ENTRY" ]] && [[ "$LOG_ENTRY" != "$LAST_ASSISTANT" ]]; then
+    # Get stage info for log header
+    STAGE_INFO=""
+    if [[ -f "$RALPH_STAGES_FILE" ]]; then
+      STAGE_INFO=$(jq -r ".[$CURRENT_STAGE_INDEX].name // \"\"" "$RALPH_STAGES_FILE")
+    fi
+    {
+      echo ""
+      echo "## Iteration $ITERATION$(if [[ -n "$STAGE_INFO" ]]; then echo " — $STAGE_INFO"; fi)"
+      echo "$LOG_ENTRY"
+    } >> "$RALPH_LOG_FILE"
+  fi
+fi
+
 update_field iteration "$NEXT_ITERATION"
 
 # Build system message for autonomous mode
 SYSTEM_MSG="🔄 Ralph-X iteration $NEXT_ITERATION"
-SYSTEM_MSG="$SYSTEM_MSG | AUTONOMOUS MODE: Work independently. Do NOT ask the user questions. Make your own decisions. If unsure, pick the best option and proceed. Only stop to show final results."
+SYSTEM_MSG="$SYSTEM_MSG | AUTONOMOUS MODE: Work independently. Do NOT ask the user questions. Make decisions yourself. If unsure, pick the best option and proceed."
 SYSTEM_MSG="$SYSTEM_MSG | Respond in the user's language."
+
+# Log instruction
+SYSTEM_MSG="$SYSTEM_MSG | LOGGING: At the END of your response, write a brief summary in <ralph-log>...</ralph-log> tags. This gets saved to $RALPH_LOG_FILE for context persistence. Keep it short (3-5 bullet points of what you did and found)."
+
+# Previous log context — include last 2 entries for continuity
+if [[ -f "$RALPH_LOG_FILE" ]]; then
+  LOG_TAIL=$(tail -30 "$RALPH_LOG_FILE")
+  if [[ -n "$LOG_TAIL" ]]; then
+    SYSTEM_MSG="$SYSTEM_MSG | PREVIOUS WORK LOG (read this to continue where you left off): $LOG_TAIL"
+  fi
+fi
 
 # Stage info
 if [[ -f "$RALPH_STAGES_FILE" ]]; then
