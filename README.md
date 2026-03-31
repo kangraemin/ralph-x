@@ -119,14 +119,76 @@ Claude outputs `<ralph-advance-stage/>` when a stage is complete. The loop track
 /cancel-ralph-x
 ```
 
+## Why Not `claude -p` Loop?
+
+Most Ralph tools use a bash `while true` loop with `claude -p` (non-interactive mode):
+
+```bash
+# Traditional Ralph
+while true; do
+  claude -p "Build a todo API"
+done
+```
+
+This works, but `claude -p` is non-interactive. You can't use skills, MCP servers, or talk to the agent mid-loop.
+
+**Ralph-X takes a different approach.** It's a Claude Code **plugin** (skill + stop hook) that runs inside your live session:
+
+| | `claude -p` loop | Ralph-X |
+|---|---|---|
+| **Implementation** | Bash `while true` | Claude Code plugin (skill + hook) |
+| **Session** | Non-interactive, new context each run | Interactive, persistent session |
+| **Skills** (`/review`, `/test`, ...) | Not available | Bind to any pipeline stage |
+| **MCP servers** | Not available | Full access |
+| **User interaction** | None — runs blind | Talk to Claude mid-loop |
+| **Pipeline** | Single fixed prompt | Choose or build your own |
+| **Presets** | None | Save and reuse custom pipelines |
+
 ## How It Works
 
-1. You provide a task
-2. You pick a mode (or build a custom pipeline)
-3. Claude works on the task following the pipeline stages
-4. When Claude tries to exit, the stop hook feeds the same prompt back
-5. Claude sees its previous work in files and iterates
-6. Repeat until completion
+Ralph-X is built on two Claude Code primitives: **skills** and **stop hooks**.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────┐
+│  /ralph-x (Skill)                       │
+│  ┌───────────────────────────────────┐  │
+│  │ setup.sh                          │  │
+│  │ → Show mode selection menu        │  │
+│  │ → Create state file               │  │
+│  │   (.claude/ralph-x.local.md)      │  │
+│  └───────────────────────────────────┘  │
+│                                         │
+│  ┌───────────────────────────────────┐  │
+│  │ stop-hook.sh (Stop Hook)          │  │
+│  │ → Intercept session exit          │  │
+│  │ → Read state + transcript         │  │
+│  │ → Detect mode selection / stage   │  │
+│  │ → Block exit, feed prompt back    │  │
+│  │ → Track iteration + stage index   │  │
+│  └───────────────────────────────────┘  │
+│                                         │
+│  ┌───────────────────────────────────┐  │
+│  │ State Files                       │  │
+│  │ → ralph-x.local.md (YAML + prompt)│  │
+│  │ → ralph-x-stages.json (pipeline)  │  │
+│  │ → ralph-x-presets.json (saved)    │  │
+│  └───────────────────────────────────┘  │
+└─────────────────────────────────────────┘
+```
+
+### Flow
+
+1. **User runs `/ralph-x`** → `setup.sh` creates state file + shows menu
+2. **User picks a mode** → Claude responds, then tries to exit
+3. **Stop hook fires** → reads transcript, detects user's choice, loads pipeline
+4. **Stop hook blocks exit** → feeds same prompt back with stage info in system message
+5. **Claude works on the task** → follows pipeline stages, uses bound skills
+6. **Claude outputs `<ralph-advance-stage/>`** → stop hook increments stage
+7. **Repeat** until max iterations or completion promise
+
+The key insight: by running inside a live session instead of `claude -p`, every feature of Claude Code — skills, MCP, tools, conversation — is available inside the loop.
 
 ## License
 
