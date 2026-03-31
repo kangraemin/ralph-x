@@ -34,10 +34,14 @@ CURRENT_STAGE_INDEX=$(get_field current_stage_index)
 BUILDER_PHASE=$(get_field builder_phase)
 COMPLETION_PROMISE=$(get_field completion_promise)
 
-# Session isolation
+# Session isolation — if state has no session_id, it's stale; clean up
 STATE_SESSION=$(get_field session_id)
 HOOK_SESSION=$(echo "$HOOK_INPUT" | jq -r '.session_id // ""')
-if [[ -n "$STATE_SESSION" ]] && [[ "$STATE_SESSION" != "$HOOK_SESSION" ]]; then
+if [[ -z "$STATE_SESSION" ]]; then
+  rm -f "$RALPH_STATE_FILE" "$RALPH_STAGES_FILE"
+  exit 0
+fi
+if [[ "$STATE_SESSION" != "$HOOK_SESSION" ]]; then
   exit 0
 fi
 
