@@ -124,6 +124,58 @@ if echo "$LAST_ASSISTANT" | grep -q '<ralph-advance-stage/>'; then
   fi
 fi
 
+# ─── Awaiting prompt (no task provided) ───────────────────────────
+PROMPT_TEXT=$(awk '/^---$/{i++; next} i>=2' "$RALPH_STATE_FILE")
+if [[ "$PROMPT_TEXT" == *"__AWAITING_PROMPT__"* ]]; then
+  if [[ -n "$LAST_USER" ]] && [[ "$LAST_USER" != *"__AWAITING_PROMPT__"* ]]; then
+    # User provided a task — save it as the prompt
+    TEMP_FILE="${RALPH_STATE_FILE}.tmp.$$"
+    sed "s/__AWAITING_PROMPT__/${LAST_USER//\//\\/}/" "$RALPH_STATE_FILE" > "$TEMP_FILE"
+    mv "$TEMP_FILE" "$RALPH_STATE_FILE"
+    PROMPT_TEXT="$LAST_USER"
+
+    # Now show the mode selection menu
+    NEXT_ITERATION=$((ITERATION + 1))
+    update_field iteration "$NEXT_ITERATION"
+    MENU_PROMPT="Task received: $LAST_USER
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ How do you want to proceed?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 1. 🚀 Quick — Jump straight into coding. No planning.
+ 2. 📋 Standard — Pre-process → Develop → Post-process.
+ 3. 🔬 Thorough — Interview → Design → Develop → Review → Test.
+ 4. 🎯 Custom — Build your own pipeline step by step.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Reply with a number (1-4) to start.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    jq -n \
+      --arg prompt "$MENU_PROMPT" \
+      --arg msg "🔄 Ralph-X iteration $NEXT_ITERATION | Task set. SHOW the mode selection menu and wait for user choice (1-4). Do NOT start working yet." \
+      '{
+        "decision": "block",
+        "reason": $prompt,
+        "systemMessage": $msg
+      }'
+    exit 0
+  else
+    # Still waiting for task — ask again
+    NEXT_ITERATION=$((ITERATION + 1))
+    update_field iteration "$NEXT_ITERATION"
+    jq -n \
+      --arg prompt "What task should I work on? Describe what you want to build or fix." \
+      --arg msg "🔄 Ralph-X iteration $NEXT_ITERATION | No task provided yet. Ask the user what they want to work on. Do NOT start any work." \
+      '{
+        "decision": "block",
+        "reason": $prompt,
+        "systemMessage": $msg
+      }'
+    exit 0
+  fi
+fi
+
 # ─── Pipeline selection (pending state) ───────────────────────────
 if [[ "$PIPELINE_NAME" == "pending" ]]; then
   # Detect user choice from last user message

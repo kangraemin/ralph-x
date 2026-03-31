@@ -71,11 +71,9 @@ done
 
 PROMPT="${PROMPT_PARTS[*]:-}"
 
+# If no prompt, set to "pending" — will ask user in the loop
 if [[ -z "$PROMPT" ]]; then
-  echo "❌ Error: No prompt provided" >&2
-  echo "   Example: /ralph-x Build a REST API for todos" >&2
-  echo "   For help: /ralph-x --help" >&2
-  exit 1
+  PROMPT="__AWAITING_PROMPT__"
 fi
 
 # Quote completion promise for YAML
@@ -104,8 +102,15 @@ started_at: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 $PROMPT
 EOF
 
-# Output setup message + selection menu (always)
-cat <<EOF
+# Output setup message
+if [[ "$PROMPT" == "__AWAITING_PROMPT__" ]]; then
+  cat <<'EOF'
+🔄 Ralph-X activated!
+
+What task should I work on? Describe what you want to build or fix.
+EOF
+else
+  cat <<EOF
 🔄 Ralph-X activated!
 
 Task: $PROMPT
@@ -132,6 +137,7 @@ Completion promise: $(if [[ "$COMPLETION_PROMISE" != "null" ]]; then echo "${COM
  Reply with a number (1-4) to start.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 EOF
+fi
 
 if [[ "$COMPLETION_PROMISE" != "null" ]]; then
   cat <<EOF
