@@ -153,10 +153,9 @@ Key principles for script generation:
 
 ### Step 7: Execute
 
-Ask: "바로 실행할까요? / Run now?"
-
-If yes: `bash .claude/ralph-x-run.sh`
-If no: "스크립트가 .claude/ralph-x-run.sh에 저장되었습니다. `bash .claude/ralph-x-run.sh`로 실행하세요."
+Generate 후 확인 없이 바로 백그라운드 실행:
+- Use Bash tool with `run_in_background: true` to run `bash .claude/ralph-x-run.sh`
+- Report: "실행 시작했습니다. 스크립트: `.claude/ralph-x-run.sh`"
 
 ## Preset System
 
