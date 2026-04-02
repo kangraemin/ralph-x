@@ -4,7 +4,7 @@
     <strong>AI development loop generator for Claude Code</strong>
   </p>
   <p align="center">
-    Build multi-stage <code>claude -p</code> loops via conversation. Skills and MCP included.
+    Build multi-stage <code>claude -p</code> loops through conversation.
   </p>
   <p align="center">
     <a href="#quick-start">Getting Started</a> · <a href="README.ko.md">한국어</a> · <a href="https://github.com/kangraemin/ralph-x/issues">Issues</a>
@@ -18,9 +18,11 @@
 
 ---
 
-Ralph-X generates multi-stage `claude -p` loop scripts through conversation. Tell it what you want, pick a pipeline, set completion conditions — it builds and runs the script for you.
+Most Ralph loop tools run a single `claude -p` with one long prompt. As context grows, the agent forgets early instructions and loses focus.
 
-Each stage runs as a separate `claude -p` call with full access to **skills and MCP servers**. A shared log file bridges context between stages.
+Ralph-X splits work into **focused stages** — each stage runs as a separate `claude -p` call with a short, specific prompt. A log file bridges context between stages.
+
+You build the loop through conversation: pick a pipeline, set iterations, add completion conditions, bind skills — Ralph-X generates and runs the bash script.
 
 ## Quick Start
 
@@ -33,75 +35,95 @@ claude plugin install ralph-x@ralph-x
 /ralph-x
 ```
 
-## How It Works
+## Example
 
 ```
 /ralph-x
 
-What task?          → "Improve Kaggle score"
-Pipeline?           → Custom: Analyze → Develop → Verify
-Max iterations?     → 20
-Completion conditions? → "LB score improved", "trial documented"
-Skills?             → /browse (Analyze), /kaggle-trial (Verify)
+What task?           →  "Improve Kaggle churn score"
+Pipeline?            →  Custom: Analyze → Develop → Verify
+Skills?              →  /browse (Analyze), /kaggle-trial (Verify)
+Max iterations?      →  20
+Completion conditions?
+  1. LB score improved
+  2. Trial documented
+  → done
 
-→ Generates .claude/ralph-x-run.sh
-→ Runs it
+✅ Script generated → .claude/ralph-x-run.sh
+Run now? → yes
 ```
 
-The generated script:
+## What It Generates
 
 ```bash
+#!/bin/bash
 for i in $(seq 1 20); do
-  # Check if all conditions met
+  # Exit if all conditions met
   if ! grep -q '^\- \[ \]' .claude/ralph-x-checklist.md; then
-    echo "✅ All done!"
-    break
+    echo "✅ All done!"; break
   fi
 
-  # Stage 1: Analyze (with /browse)
-  claude -p "Read log, analyze current state, use /browse..." --max-turns 50
+  # Stage 1: Analyze (uses /browse)
+  claude -p "Read .claude/ralph-x-log.md for context.
+  Analyze current state. Use /browse to check discussions.
+  Append summary to .claude/ralph-x-log.md.
+  Update .claude/ralph-x-checklist.md if conditions met." \
+  --max-turns 50
 
   # Stage 2: Develop
-  claude -p "Read log, implement best strategy..." --max-turns 50
+  claude -p "Read .claude/ralph-x-log.md for context.
+  Implement the best strategy from analysis.
+  Append summary to .claude/ralph-x-log.md." \
+  --max-turns 50
 
-  # Stage 3: Verify (with /kaggle-trial)
-  claude -p "Read log, verify results, use /kaggle-trial..." --max-turns 50
+  # Stage 3: Verify (uses /kaggle-trial)
+  claude -p "Read .claude/ralph-x-log.md for context.
+  Verify results. Use /kaggle-trial to document trial.
+  Append summary to .claude/ralph-x-log.md.
+  Update .claude/ralph-x-checklist.md if conditions met." \
+  --max-turns 50
 done
 ```
 
-## Key Features
+Each `claude -p` call:
+- Gets a **short, focused prompt** (no context bloat)
+- Has full access to **skills and MCP servers**
+- Reads/writes a **shared log file** for continuity
+- Checks/updates a **completion checklist**
 
-- **Conversational setup** — build your loop through dialogue
-- **Multi-stage** — each stage is a separate `claude -p` call (focused, no context bloat)
-- **Skills & MCP** — bind `/browse`, `/review`, `/test`, or any skill to stages
-- **Checklist completion** — loop stops when all conditions are met
-- **Log file bridge** — `.claude/ralph-x-log.md` carries context across stages
-- **Presets** — save and reuse pipeline configurations
+## Features
 
-## Why Not a Single `claude -p`?
+| Feature | Description |
+|---------|-------------|
+| **Multi-stage** | Each stage = separate `claude -p` with clean context |
+| **Skills & MCP** | Bind `/browse`, `/review`, `/test` etc. to any stage |
+| **Checklist** | Loop stops when all conditions are met |
+| **Log bridge** | `.claude/ralph-x-log.md` carries context across stages |
+| **Presets** | Save and reuse pipeline configurations |
+| **Conversational** | Build the loop through dialogue, not flags |
 
-A single long `claude -p` call forgets early instructions as context grows. Ralph-X splits work into focused stages — each gets a clean context with only the log file for continuity.
+## Why Split Stages?
 
-## Architecture
+| Single `claude -p` | Multi-stage (Ralph-X) |
+|--------------------|-----------------------|
+| One long prompt | Short prompt per stage |
+| Forgets early instructions | Fresh context each stage |
+| Everything in one context | Log file bridges context |
+| Hard to bind different skills | Different skill per stage |
 
-```
-/ralph-x (Skill)
-  ↓ conversation
-Collect: task, pipeline, iterations, checklist, skills
-  ↓ generate
-.claude/ralph-x-run.sh    (staged claude -p loop)
-.claude/ralph-x-log.md    (context bridge between stages)
-.claude/ralph-x-checklist.md (completion tracking)
-  ↓ execute
-bash .claude/ralph-x-run.sh
-```
+## Files
 
-No hooks. No state files. Just a skill that writes a script.
+| File | Purpose |
+|------|---------|
+| `.claude/ralph-x-run.sh` | Generated loop script |
+| `.claude/ralph-x-log.md` | Work log (context bridge) |
+| `.claude/ralph-x-checklist.md` | Completion tracking |
+| `.claude/ralph-x-presets.json` | Saved presets |
 
 ## Cancel
 
 ```bash
-# Kill the running script
+# Stop the running script
 Ctrl+C
 
 # Clean up
