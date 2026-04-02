@@ -160,9 +160,9 @@ If no: "스크립트가 .claude/ralph-x-run.sh에 저장되었습니다. `bash .
 
 ## Preset System
 
-After generating, ask: "프리셋으로 저장할까요? / Save as preset?"
+After generating the script, ALWAYS auto-save to `.claude/ralph-x-presets.json` (no confirmation needed).
+Use the task description as the preset name (slugified).
 
-If yes, save to `.claude/ralph-x-presets.json`:
 ```json
 {
   "preset-name": {
@@ -174,7 +174,7 @@ If yes, save to `.claude/ralph-x-presets.json`:
 }
 ```
 
-On next `/ralph-x` invocation, check for presets:
+On next `/ralph-x` invocation, check for presets. If presets exist:
 ```
 저장된 프리셋이 있습니다:
 a. kaggle-churn (분석 → 개발 → 검증)
