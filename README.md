@@ -1,10 +1,10 @@
 <p align="center">
   <h1 align="center">Ralph-X</h1>
   <p align="center">
-    <strong>Interactive AI development loop with mode selection</strong>
+    <strong>AI development loop generator for Claude Code</strong>
   </p>
   <p align="center">
-    Choose your pipeline before you start. Bind skills to stages. Save and reuse.
+    Build multi-stage <code>claude -p</code> loops via conversation. Skills and MCP included.
   </p>
   <p align="center">
     <a href="#quick-start">Getting Started</a> · <a href="README.ko.md">한국어</a> · <a href="https://github.com/kangraemin/ralph-x/issues">Issues</a>
@@ -18,111 +18,94 @@
 
 ---
 
-Most Ralph tools force a single fixed pipeline. Ralph-X asks **"How do you want to proceed?"** every time — pick the right approach for the task, bind skills to stages, save your pipelines as presets.
+Ralph-X generates multi-stage `claude -p` loop scripts through conversation. Tell it what you want, pick a pipeline, set completion conditions — it builds and runs the script for you.
 
-Built as a **Claude Code plugin** (skill + stop hook), not a `claude -p` bash loop. This means full access to skills, MCP servers, and live conversation — inside the loop.
+Each stage runs as a separate `claude -p` call with full access to **skills and MCP servers**. A shared log file bridges context between stages.
 
 ## Quick Start
 
 ```bash
-# Add marketplace & install
+# Install
 claude plugin marketplace add kangraemin/ralph-x
 claude plugin install ralph-x@ralph-x
 
 # Run
-/ralph-x Build a REST API for todos
+/ralph-x
 ```
 
-Every run starts with:
+## How It Works
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- How do you want to proceed?
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+/ralph-x
 
- 1. 🚀 Quick — Just code it.
- 2. 📋 Standard — Pre → Dev → Post.
- 3. 🔬 Thorough — Interview → Design → Dev → Review → Test.
- 4. 🎯 Custom — Build your own pipeline.
+What task?          → "Improve Kaggle score"
+Pipeline?           → Custom: Analyze → Develop → Verify
+Max iterations?     → 20
+Completion conditions? → "LB score improved", "trial documented"
+Skills?             → /browse (Analyze), /kaggle-trial (Verify)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+→ Generates .claude/ralph-x-run.sh
+→ Runs it
+```
+
+The generated script:
+
+```bash
+for i in $(seq 1 20); do
+  # Check if all conditions met
+  if ! grep -q '^\- \[ \]' .claude/ralph-x-checklist.md; then
+    echo "✅ All done!"
+    break
+  fi
+
+  # Stage 1: Analyze (with /browse)
+  claude -p "Read log, analyze current state, use /browse..." --max-turns 50
+
+  # Stage 2: Develop
+  claude -p "Read log, implement best strategy..." --max-turns 50
+
+  # Stage 3: Verify (with /kaggle-trial)
+  claude -p "Read log, verify results, use /kaggle-trial..." --max-turns 50
+done
 ```
 
 ## Key Features
 
-- **Interactive mode selection** — choose your workflow, don't get one forced on you
-- **Skill binding** — attach `/review`, `/test`, or any skill to pipeline stages
-- **Custom pipeline builder** — compose stages step by step, conversationally
-- **Presets** — save and reuse your custom pipelines across sessions
-- **Live session** — skills, MCP servers, and user interaction available mid-loop
+- **Conversational setup** — build your loop through dialogue
+- **Multi-stage** — each stage is a separate `claude -p` call (focused, no context bloat)
+- **Skills & MCP** — bind `/browse`, `/review`, `/test`, or any skill to stages
+- **Checklist completion** — loop stops when all conditions are met
+- **Log file bridge** — `.claude/ralph-x-log.md` carries context across stages
+- **Presets** — save and reuse pipeline configurations
 
-## Why Not `claude -p`?
+## Why Not a Single `claude -p`?
 
-| | `claude -p` loop | Ralph-X |
-|---|---|---|
-| **Implementation** | Bash `while true` | Claude Code plugin (skill + hook) |
-| **Session** | Non-interactive, fresh context each run | Interactive, persistent session |
-| **Skills** | Not available | Bind to any stage |
-| **MCP servers** | Not available | Full access |
-| **User interaction** | None | Talk to Claude mid-loop |
-| **Pipeline** | Single fixed prompt | Choose or build your own |
-
-## Custom Pipeline Builder
-
-Pick **Custom** and build your pipeline conversationally:
-
-```
-Step 1: What should I do first?
-> Analyze existing code
-
-Any skill to use? (e.g., /review, or skip)
-> /review
-
-Step 2: Then?
-> Write tests
-
-Any skill?
-> /test
-
-Step 3: Then?
-> Implement
-
-Step 4: Then?
-> done
-
-Pipeline: Analyze existing code (/review) → Write tests (/test) → Implement
-
-Save as preset? (name it):
-> tdd-style
-```
-
-Saved presets show up next time you pick Custom.
+A single long `claude -p` call forgets early instructions as context grows. Ralph-X splits work into focused stages — each gets a clean context with only the log file for continuity.
 
 ## Architecture
 
 ```
-/ralph-x (Skill)          →  setup.sh creates state + shows menu
-     ↓
-stop-hook.sh (Stop Hook)  →  intercepts exit, reads transcript,
-                              detects mode/stage, blocks exit,
-                              feeds prompt back with stage info
-     ↓
-State Files               →  ralph-x.local.md  (iteration + config)
-                              ralph-x-stages.json (pipeline stages)
-                              ralph-x-presets.json (saved pipelines)
+/ralph-x (Skill)
+  ↓ conversation
+Collect: task, pipeline, iterations, checklist, skills
+  ↓ generate
+.claude/ralph-x-run.sh    (staged claude -p loop)
+.claude/ralph-x-log.md    (context bridge between stages)
+.claude/ralph-x-checklist.md (completion tracking)
+  ↓ execute
+bash .claude/ralph-x-run.sh
 ```
 
-## Options
-
-| Flag | Description |
-|------|-------------|
-| `--max-iterations <n>` | Auto-stop after N iterations |
-| `--completion-promise <text>` | Stop when promise is genuinely true |
+No hooks. No state files. Just a skill that writes a script.
 
 ## Cancel
 
 ```bash
-/cancel-ralph-x
+# Kill the running script
+Ctrl+C
+
+# Clean up
+rm -f .claude/ralph-x-run.sh .claude/ralph-x-log.md .claude/ralph-x-checklist.md
 ```
 
 ## License

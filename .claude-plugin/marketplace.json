@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "ralph-x",
-  "description": "Interactive AI development loop with mode selection",
+  "description": "AI development loop generator — build multi-stage claude -p loops via conversation",
   "owner": {
     "name": "kangraemin",
     "email": "kangraemin@gmail.com"
@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "ralph-x",
-      "description": "Interactive AI development loop with mode selection — choose your pipeline before you start",
+      "description": "AI development loop generator — build multi-stage claude -p loops via conversation",
       "source": "./",
       "category": "development"
     }

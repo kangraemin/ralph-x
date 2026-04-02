@@ -1,12 +1,12 @@
 {
   "name": "ralph-x",
-  "description": "Interactive AI development loop with mode selection — choose your pipeline before you start",
-  "version": "0.11.0",
+  "description": "AI development loop generator — build multi-stage claude -p loops via conversation",
+  "version": "1.0.0",
   "author": {
     "name": "kangraemin",
     "email": "kangraemin@gmail.com"
   },
-  "keywords": ["ralph", "loop", "pipeline", "interactive", "mode-selection"],
+  "keywords": ["ralph", "loop", "pipeline", "claude-p", "automation", "skill"],
   "homepage": "https://github.com/kangraemin/ralph-x",
   "repository": "https://github.com/kangraemin/ralph-x",
   "license": "MIT"
