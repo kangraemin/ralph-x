@@ -33,7 +33,8 @@ Ask how to proceed:
 ```
 
 If Custom: collect stages one by one ("Step 1?", "Step 2?", ... until "done"/"끝")
-For each stage, ask if there's a skill to use (e.g., /browse, /review, /test, or skip)
+For each stage, collect STEPS one by one. Each step becomes a separate `claude -p` call.
+Ask if there's a skill to use per step (e.g., /browse, /review, /test, or skip)
 
 ### Step 3: Iterations
 
@@ -102,27 +103,38 @@ for i in $(seq 1 $MAX_ITER); do
   fi
 
   # Stage 1: <stage name>
+  #   Step 1-1: <step description>
   claude -p "$(cat << 'PROMPTEOF'
 You are in a Ralph-X loop. Iteration $i/$MAX_ITER.
-
 Task: <task>
-Current stage: <stage 1 name>
+Current step: <step description>
 <skill instruction if any>
 
 IMPORTANT:
 - Read .claude/ralph-x-log.md for previous work
-- Read .claude/ralph-x-checklist.md for remaining conditions
 - Work autonomously. Do NOT ask questions.
 - At the end, append your summary to .claude/ralph-x-log.md
-- If a checklist item is done, mark it [x] in .claude/ralph-x-checklist.md
 PROMPTEOF
-)" --max-turns 50
-
+)"
+  #   Step 1-2: <step description>
+  claude -p "..."
   # Stage 2: <stage name>
-  claude -p "..." --max-turns 50
+  #   Step 2-1: <step description>
+  claude -p "..."
+  # ... more steps
 
-  # ... more stages
+  # Check completion (last step of iteration)
+  claude -p "$(cat << 'PROMPTEOF'
+You are in a Ralph-X loop. Iteration $i/$MAX_ITER.
+Task: <task>
+Current step: Check completion conditions.
 
+- Read .claude/ralph-x-checklist.md
+- If a checklist item is done, mark it [x]
+- Append iteration summary to .claude/ralph-x-log.md
+- Work autonomously. Do NOT ask questions.
+PROMPTEOF
+)"
   echo "━━━ Iteration $i complete ━━━"
 done
 
@@ -130,13 +142,14 @@ echo "🏁 Ralph-X finished after $i iterations"
 ```
 
 Key principles for script generation:
-- Each stage is a SEPARATE `claude -p` call with a focused prompt
-- Log file (`.claude/ralph-x-log.md`) bridges context between stages
+- Each STEP is a SEPARATE `claude -p` call (not each stage — each step within a stage)
+- All steps in an iteration must complete for the iteration to count
+- Log file (`.claude/ralph-x-log.md`) bridges context between steps
 - Checklist file (`.claude/ralph-x-checklist.md`) tracks completion
 - `grep -q '^\- \[ \]'` checks if unchecked items remain
-- Stage prompts are SHORT and specific
-- Include skill invocation instructions in the stage prompt (e.g., "Use /browse to crawl the page")
-- `--max-turns 50` per stage (adjustable)
+- Step prompts must be SINGLE-PURPOSE — one clear action per `claude -p` call
+- Include skill invocation instructions in the step prompt (e.g., "Use /browse to crawl the page")
+- Do NOT use `--max-turns` — each step runs until complete
 
 ### Step 7: Execute
 
@@ -175,4 +188,4 @@ a. kaggle-churn (분석 → 개발 → 검증)
 - Keep stage prompts SHORT (under 500 chars each)
 - Always include log file read/write instructions in each stage prompt
 - Always include checklist check in each stage prompt
-- Use `--max-turns 50` as default, adjustable per stage
+- Do NOT use `--max-turns` — each step runs until complete
