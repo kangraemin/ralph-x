@@ -59,7 +59,44 @@ Checklist:
 Skills: /browse (Step1), /test (Step3)
 ```
 
-Ask to confirm. Then generate the bash script.
+Ask to confirm. Then proceed to Step 5-B.
+
+### Step 5-B: Run Directory Setup
+
+After user confirms, before generating the script:
+
+1. **Generate RUN_ID** from task name:
+   - Slugify: lowercase, spaces/special chars → hyphens, max 20 chars
+   - If using a preset, use the preset name as RUN_ID
+   - Examples: "유튜브 아이디어 검증" → `youtube-idea-verify`, "Kaggle trial" → `kaggle-trial`
+
+2. **Set RUN_DIR**: `.claude/ralph-x-runs/{RUN_ID}`
+
+3. **Check for collision**: If RUN_DIR already exists, append suffix: `-2`, `-3`, etc.
+   ```bash
+   RUN_ID="<slug>"
+   RUN_DIR=".claude/ralph-x-runs/$RUN_ID"
+   if [ -d "$RUN_DIR" ]; then
+     i=2
+     while [ -d ".claude/ralph-x-runs/${RUN_ID}-${i}" ]; do i=$((i+1)); done
+     RUN_ID="${RUN_ID}-${i}"
+     RUN_DIR=".claude/ralph-x-runs/$RUN_ID"
+   fi
+   ```
+
+4. **Check for running processes** in this project:
+   ```bash
+   ps aux | grep "ralph-x-runs" | grep "$(pwd)" | grep -v grep
+   ```
+   If found, warn the user:
+   ```
+   ⚠️ 이 프로젝트에서 이미 Ralph-X 루프가 실행 중입니다.
+   1. 기존 루프 중단하고 새로 시작
+   2. 기존 루프 유지하고 새 런 추가 (병렬)
+   3. 취소
+   ```
+
+5. Create the directory: `mkdir -p "$RUN_DIR"`
 
 ### Step 6: Generate Script
 
@@ -68,7 +105,7 @@ Each step uses a UNIQUE heredoc delimiter (S1EOF, S2EOF, S3EOF, ...).
 
 **CRITICAL: NEVER use `--max-turns`. Each step runs until it finishes on its own.**
 
-Create `.claude/ralph-x-run.sh`:
+Create `{RUN_DIR}/run.sh` (NOT `.claude/ralph-x-run.sh`):
 
 ```bash
 #!/bin/bash
@@ -76,11 +113,13 @@ Create `.claude/ralph-x-run.sh`:
 # Task: <task>
 # Pipeline: <step names>
 # Max iterations: <N>
+# RUN_ID: <run_id>
 
 set -euo pipefail
 
-LOG_FILE=".claude/ralph-x-log.md"
-CHECKLIST_FILE=".claude/ralph-x-checklist.md"
+RUN_DIR=".claude/ralph-x-runs/<run_id>"
+LOG_FILE="$RUN_DIR/log.md"
+CHECKLIST_FILE="$RUN_DIR/checklist.md"
 
 # Initialize log (only if not exists)
 if [ ! -f "$LOG_FILE" ]; then
@@ -111,9 +150,9 @@ Task: <task>
 Current step: <step 1 description>
 <skill instruction if any, e.g. "Use /browse skill to crawl ...">
 
-- Read .claude/ralph-x-log.md for previous work
+- Read {RUN_DIR}/log.md for previous work
 - Work autonomously. Do NOT ask questions.
-- Append your summary to .claude/ralph-x-log.md when done.
+- Append your summary to {RUN_DIR}/log.md when done.
 S1EOF
 
 cat > "$PROMPT_DIR/step2.txt" << 'S2EOF'
@@ -121,9 +160,9 @@ You are in a Ralph-X loop.
 Task: <task>
 Current step: <step 2 description>
 
-- Read .claude/ralph-x-log.md for previous work
+- Read {RUN_DIR}/log.md for previous work
 - Work autonomously. Do NOT ask questions.
-- Append your summary to .claude/ralph-x-log.md when done.
+- Append your summary to {RUN_DIR}/log.md when done.
 S2EOF
 
 cat > "$PROMPT_DIR/step3.txt" << 'S3EOF'
@@ -131,9 +170,11 @@ You are in a Ralph-X loop.
 Task: <task>
 Current step: <step 3 description>
 
-- Read .claude/ralph-x-log.md for previous work
+- Read {RUN_DIR}/log.md for previous work
+- Read {RUN_DIR}/checklist.md for remaining conditions
 - Work autonomously. Do NOT ask questions.
-- Append your summary to .claude/ralph-x-log.md when done.
+- Append your summary to {RUN_DIR}/log.md when done.
+- If a checklist item is done, mark it [x] in {RUN_DIR}/checklist.md
 S3EOF
 
 # Main loop
@@ -175,8 +216,8 @@ For conditional steps (e.g., "every 3 iterations"), wrap in an `if`:
 ### Step 7: Execute
 
 1. Auto-save preset to `.claude/ralph-x-presets.json` (no confirmation)
-2. Auto-run in background: Use Bash tool with `run_in_background: true` to run `bash .claude/ralph-x-run.sh`
-3. Report: "실행 시작했습니다. 스크립트: `.claude/ralph-x-run.sh`"
+2. Auto-run in background: Use Bash tool with `run_in_background: true` to run `bash {RUN_DIR}/run.sh`
+3. Report: "실행 시작했습니다. 스크립트: `{RUN_DIR}/run.sh`"
 
 Do NOT ask "실행할까요?" — just run it.
 
@@ -215,6 +256,8 @@ a. kaggle-churn (분석 → 개발 → 검증)
 - Use UNIQUE heredoc delimiters per step (S1EOF, S2EOF, S3EOF, ...). NEVER reuse delimiters.
 - Write prompts to temp files first, then `claude -p "$(cat file)"`. Do NOT inline heredocs inside the for loop.
 - Keep step prompts SHORT and SINGLE-PURPOSE.
-- Always include log file read/write instructions in each step prompt.
+- Always include log file read/write instructions in each step prompt (use `{RUN_DIR}/log.md`).
+- Always include checklist check in each step prompt (use `{RUN_DIR}/checklist.md`).
+- Step output files go in RUN_DIR: `{RUN_DIR}/stage1.md`, `{RUN_DIR}/stage2.md`, etc.
 - Auto-save preset after generation. Do NOT ask.
 - Auto-run in background after generation. Do NOT ask.
