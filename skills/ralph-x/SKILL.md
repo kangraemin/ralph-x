@@ -215,7 +215,7 @@ For conditional steps (e.g., "every 3 iterations"), wrap in an `if`:
 
 ### Step 7: Execute
 
-1. Auto-save preset to `.claude/ralph-x-presets.json` (no confirmation)
+1. Auto-save preset to `.claude/ralph-x-runs/presets.json` (no confirmation)
 2. Auto-run in background: Use Bash tool with `run_in_background: true` to run `bash {RUN_DIR}/run.sh`
 3. Report: "실행 시작했습니다. 스크립트: `{RUN_DIR}/run.sh`"
 
@@ -223,7 +223,7 @@ Do NOT ask "실행할까요?" — just run it.
 
 ## Preset System
 
-After generating, ALWAYS auto-save to `.claude/ralph-x-presets.json`:
+After generating, ALWAYS auto-save to `.claude/ralph-x-runs/presets.json`:
 
 ```json
 {
