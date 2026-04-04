@@ -36,6 +36,16 @@ If Custom: collect steps one by one ("Step 1?", "Step 2?", ... until "done"/"끝
 Each step becomes a SEPARATE `claude -p` call.
 Ask if there's a skill to use per step (e.g., /browse, /review, /test, or skip)
 
+### Step 2-B: Model
+
+Ask: "어떤 모델로 돌릴까요? (기본: sonnet) / Which model? (default: sonnet)"
+
+Options:
+- `sonnet` (default)
+- `opus`
+- `haiku`
+- or full model name (e.g., `claude-sonnet-4-6`)
+
 ### Step 3: Iterations
 
 Ask: "최대 몇 회 반복? (기본 10) / Max iterations? (default 10)"
@@ -51,6 +61,7 @@ Collect items until done. This becomes a checklist in the prompt.
 Show summary:
 ```
 Task: ...
+Model: sonnet
 Pipeline: Step1 → Step2 → Step3
 Iterations: 20
 Checklist:
@@ -118,6 +129,7 @@ Create `{RUN_DIR}/run.sh` (NOT `.claude/ralph-x-run.sh`):
 set -euo pipefail
 
 RUN_DIR=".claude/ralph-x-runs/<run_id>"
+MODEL="<model>"
 LOG_FILE="$RUN_DIR/log.md"
 CHECKLIST_FILE="$RUN_DIR/checklist.md"
 
@@ -188,13 +200,13 @@ for i in $(seq 1 $MAX_ITER); do
   fi
 
   # Step 1: <step 1 name>
-  claude -p "$(cat "$PROMPT_DIR/step1.txt")"
+  claude -p --model "$MODEL" "$(cat "$PROMPT_DIR/step1.txt")"
 
   # Step 2: <step 2 name>
-  claude -p "$(cat "$PROMPT_DIR/step2.txt")"
+  claude -p --model "$MODEL" "$(cat "$PROMPT_DIR/step2.txt")"
 
   # Step 3: <step 3 name>
-  claude -p "$(cat "$PROMPT_DIR/step3.txt")"
+  claude -p --model "$MODEL" "$(cat "$PROMPT_DIR/step3.txt")"
 
   echo "━━━ Iteration $i complete ━━━"
 done
@@ -209,7 +221,7 @@ For conditional steps (e.g., "every 3 iterations"), wrap in an `if`:
 ```bash
   # Step 4: submit every 3 iterations
   if [ $((i % 3)) -eq 0 ]; then
-    claude -p "$(cat "$PROMPT_DIR/step4.txt")"
+    claude -p --model "$MODEL" "$(cat "$PROMPT_DIR/step4.txt")"
   fi
 ```
 
@@ -228,6 +240,7 @@ After generating, ALWAYS auto-save to `.claude/ralph-x-runs/presets.json`:
 ```json
 {
   "preset-name": {
+    "model": "sonnet",
     "task_template": "...",
     "steps": [
       {"name": "...", "skill": "/browse or null"},
