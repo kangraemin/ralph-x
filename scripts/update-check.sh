@@ -134,26 +134,40 @@ if [ "${_UPDATE_BOOTSTRAPPED:-}" != "1" ]; then
   trap - EXIT
 fi
 
-# ── git clone → 캐시 덮어쓰기 ────────────────────────────────────────────────
-CLONE_DIR=$(mktemp -d) || { echo "ralph-x: mktemp -d failed" >&2; exit 0; }
-trap 'rm -rf "$CLONE_DIR"' EXIT
-
-if ! git clone --depth 1 "https://github.com/$REPO.git" "$CLONE_DIR/ralph-x" -q 2>/dev/null; then
-  echo "ralph-x: git clone 실패, 업데이트 건너뜀" >&2
-  exit 0
+# ── marketplace clone 업데이트 ────────────────────────────────────────────────
+MARKETPLACE_DIR="${RALPH_X_MARKETPLACE_DIR:-$HOME/.claude/plugins/marketplaces/ralph-x}"
+if [ -d "$MARKETPLACE_DIR/.git" ]; then
+  git -C "$MARKETPLACE_DIR" pull origin main -q 2>/dev/null || true
 fi
 
-# 캐시에 복사 (기존 파일 덮어쓰기)
-for item in skills scripts .claude-plugin README.md README.ko.md LICENSE; do
-  src="$CLONE_DIR/ralph-x/$item"
-  if [ -e "$src" ]; then
-    if [ -d "$src" ]; then
-      cp -R "$src" "$CACHE_DIR/"
-    else
-      cp "$src" "$CACHE_DIR/"
-    fi
+# ── 캐시 업데이트: claude plugin install 재실행 ──────────────────────────────
+# marketplace가 최신이면 plugin install이 최신 캐시를 만든다
+if command -v claude >/dev/null 2>&1; then
+  claude plugin install "$PLUGIN_KEY" -q 2>/dev/null || true
+fi
+
+# fallback: plugin install 실패 시 직접 clone → 복사
+if [ ! -d "$CACHE_DIR/skills/update-ralph-x" ]; then
+  CLONE_DIR=$(mktemp -d) || { echo "ralph-x: mktemp -d failed" >&2; exit 0; }
+  trap 'rm -rf "$CLONE_DIR"' EXIT
+
+  if ! git clone --depth 1 "https://github.com/$REPO.git" "$CLONE_DIR/ralph-x" -q 2>/dev/null; then
+    echo "ralph-x: git clone 실패, 업데이트 건너뜀" >&2
+    exit 0
   fi
-done
+
+  # 캐시에 복사 (기존 파일 덮어쓰기)
+  for item in skills scripts .claude-plugin README.md README.ko.md LICENSE; do
+    src="$CLONE_DIR/ralph-x/$item"
+    if [ -e "$src" ]; then
+      if [ -d "$src" ]; then
+        cp -R "$src" "$CACHE_DIR/"
+      else
+        cp "$src" "$CACHE_DIR/"
+      fi
+    fi
+  done
+fi
 
 # ── installed_plugins.json 업데이트 ──────────────────────────────────────────
 if [ -n "$LATEST_SHA_FULL" ]; then
