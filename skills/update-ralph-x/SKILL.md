@@ -8,11 +8,9 @@ allowed-tools: [Bash, Read, Write, Glob]
 
 **Respond in the same language the user uses.** Korean → Korean. English → English.
 
-## Flow
+## Step 1: 설치 경로 확인 + bootstrap
 
-### Step 1: update-check.sh 탐색
-
-installed_plugins.json에서 ralph-x 설치 경로를 읽는다:
+아래 코드를 **그대로** 실행한다. 경로나 파일명을 변경하지 않는다.
 
 ```bash
 INSTALL_PATH=$(python3 -c "
@@ -22,65 +20,108 @@ entries = data.get('plugins', {}).get('ralph-x@ralph-x', [])
 print(entries[0]['installPath'] if entries else '')
 ")
 SCRIPT="$INSTALL_PATH/scripts/update-check.sh"
+if [ ! -f "$SCRIPT" ]; then
+  mkdir -p "$INSTALL_PATH/scripts"
+  curl -sf "https://raw.githubusercontent.com/kangraemin/ralph-x/main/scripts/update-check.sh" \
+    -o "$SCRIPT" && chmod +x "$SCRIPT"
+fi
+echo "SCRIPT=$SCRIPT"
+echo "EXISTS=$([ -f "$SCRIPT" ] && echo yes || echo no)"
 ```
 
-스크립트가 없으면 GitHub raw에서 bootstrap:
-```bash
-mkdir -p "$INSTALL_PATH/scripts"
-curl -sf "https://raw.githubusercontent.com/kangraemin/ralph-x/main/scripts/update-check.sh" \
-  -o "$SCRIPT" && chmod +x "$SCRIPT"
-```
+- `EXISTS=no` → "update-check.sh를 다운로드할 수 없습니다." 출력 후 종료
+- `EXISTS=yes` → Step 2 진행. `$SCRIPT` 값을 기억해둔다.
 
-bootstrap 실패 시 "update-check.sh를 다운로드할 수 없습니다." 출력 후 종료.
+## Step 2: 버전 확인
 
-### Step 2: 버전 확인
-
-```bash
-bash "$SCRIPT" --check-only
-```
-
-### Step 3: 결과 분기
-
-- `up-to-date` → "최신 버전입니다 (SHA)" 출력 → Step 5로 이동
-- `update-available` → 현재/최신 SHA 보여주고 업데이트 여부 확인
-
-### Step 4: 업데이트 실행
+Step 1에서 얻은 `$SCRIPT` 경로를 그대로 사용:
 
 ```bash
-bash "$SCRIPT" --force
+bash "<Step 1에서 출력된 SCRIPT 경로>" --check-only
 ```
 
-완료 메시지 출력.
+## Step 3: 결과 처리
 
-### Step 5: 프리셋 마이그레이션 (현재 프로젝트)
+- `status: up-to-date` → "최신 버전입니다 (SHA)" 출력 → Step 5로 이동
+- `status: update-available` → 현재/최신 SHA 보여주고 업데이트 여부 확인
 
-현재 프로젝트 디렉토리에서 구경로 프리셋 파일을 탐색한다:
+## Step 4: 업데이트 실행
 
-| 우선순위 | 구경로 | 설명 |
-|---------|-------|------|
-| 1 | `.claude/ralph-x-presets.json` | v1 경로 |
-| 2 | `.ralph-x/state.json` | v0 경로 (매우 오래됨) |
+사용자 승인 시:
 
-신경로: `.claude/ralph-x-runs/presets.json`
+```bash
+bash "<Step 1에서 출력된 SCRIPT 경로>" --force
+```
 
-**마이그레이션 로직:**
+## Step 5: 프리셋 마이그레이션
 
-1. 구경로 파일이 하나도 없으면 → "마이그레이션 대상 없음" 출력, 종료
-2. 신경로가 없으면 → 구경로 내용을 그대로 신경로에 복사
-3. 신경로가 있으면 → 구경로의 프리셋 중 신경로에 없는 것만 merge
-4. 마이그레이션 결과 보고 (이전된 프리셋 수)
+아래 Python 코드를 **그대로** 실행한다:
 
-**구 아티팩트 정리:**
+```bash
+python3 -c "
+import json, os, sys
 
-마이그레이션 완료 후, 아래 파일들이 존재하면 목록 출력:
-- `.claude/ralph-x-presets.json`
-- `.claude/ralph-x-run.sh`
-- `.claude/ralph-x-log.md`
-- `.claude/ralph-x-checklist.md`
-- `.ralph-x/state.json`
+old_paths = [
+    '.claude/ralph-x-presets.json',
+    '.ralph-x/state.json',
+]
+new_dir = '.claude/ralph-x-runs'
+new_path = os.path.join(new_dir, 'presets.json')
 
-사용자에게 "이전 파일들을 삭제할까요?" 확인 후 삭제.
+# 구경로에서 프리셋 수집
+old_presets = {}
+found_old = []
+for p in old_paths:
+    if os.path.isfile(p):
+        try:
+            with open(p) as f:
+                data = json.load(f)
+            old_presets.update(data)
+            found_old.append(p)
+        except:
+            pass
 
-### Step 6: 완료
+if not found_old:
+    print('NO_OLD_PRESETS')
+    sys.exit(0)
+
+# 신경로 존재 시 merge
+if os.path.isfile(new_path):
+    with open(new_path) as f:
+        new_data = json.load(f)
+    merged = 0
+    for k, v in old_presets.items():
+        if k not in new_data:
+            new_data[k] = v
+            merged += 1
+    with open(new_path, 'w') as f:
+        json.dump(new_data, f, indent=2, ensure_ascii=False)
+    print(f'MERGED:{merged}')
+else:
+    os.makedirs(new_dir, exist_ok=True)
+    with open(new_path, 'w') as f:
+        json.dump(old_presets, f, indent=2, ensure_ascii=False)
+    print(f'MIGRATED:{len(old_presets)}')
+
+# 구 아티팩트 목록
+artifacts = [
+    '.claude/ralph-x-presets.json',
+    '.claude/ralph-x-run.sh',
+    '.claude/ralph-x-log.md',
+    '.claude/ralph-x-checklist.md',
+    '.ralph-x/state.json',
+]
+existing = [a for a in artifacts if os.path.isfile(a)]
+if existing:
+    print('OLD_FILES:' + ','.join(existing))
+"
+```
+
+- `NO_OLD_PRESETS` → "마이그레이션 대상 없음"
+- `MIGRATED:N` → "N개 프리셋 마이그레이션 완료"
+- `MERGED:N` → "N개 프리셋 merge 완료"
+- `OLD_FILES:...` → 목록 출력 후 "이전 파일들을 삭제할까요?" 확인. 승인 시 `rm -f <파일들>`
+
+## Step 6: 완료
 
 결과 요약 출력.
