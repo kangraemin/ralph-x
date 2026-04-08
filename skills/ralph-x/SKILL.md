@@ -153,8 +153,9 @@ fi
 
 MAX_ITER=<N>
 
-# Write step prompts to temp files
-PROMPT_DIR=$(mktemp -d)
+# Write step prompts to RUN_DIR (not /tmp — OS cleans /tmp on long runs)
+PROMPT_DIR="$RUN_DIR/prompts"
+mkdir -p "$PROMPT_DIR"
 
 cat > "$PROMPT_DIR/step1.txt" << 'S1EOF'
 You are in a Ralph-X loop.
@@ -211,8 +212,8 @@ for i in $(seq 1 $MAX_ITER); do
   echo "━━━ Iteration $i complete ━━━"
 done
 
-# Cleanup
-rm -rf "$PROMPT_DIR"
+# Cleanup (prompts are inside RUN_DIR, keep for debugging; remove if not needed)
+# rm -rf "$PROMPT_DIR"
 
 echo "🏁 Ralph-X finished after $i iterations"
 ```
