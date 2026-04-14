@@ -21,7 +21,9 @@ Ask: "What task should I work on? / 어떤 작업을 할까요?"
 
 ### Step 2: Pipeline
 
-Ask how to proceed:
+First, check if `.claude/ralph-x-runs/presets.json` exists and has entries.
+
+Show the pipeline menu. If presets exist, append them after a separator:
 
 ```
 어떻게 진행할까요? / How do you want to proceed?
@@ -30,7 +32,24 @@ Ask how to proceed:
 2. 📋 Standard — 분석 → 개발 → 검증
 3. 🔬 Thorough — 분석 → 설계 → 개발 → 리뷰 → 테스트
 4. 🎯 Custom — 직접 스텝 조합
+─────────────────────────
+5. kaggle-churn
+   ① 분석 — "경쟁 솔루션 상위 10개 분석" (/browse)
+   ② 개발 — "LightGBM baseline 구현"
+   ③ 검증 — "CV 점수 확인 후 submission 생성" (/test)
+6. web-scraper
+   ① 분석 — "타겟 사이트 구조 파악"
+   ② 개발 — "셀레니움으로 크롤러 구현" (/browse)
 ```
+
+**Preset display format**: For each preset, show steps numbered with circled digits (①②③...).
+Each step line: `① {step name} — "{task_template or step description, truncated ~30 chars}" (/skill-name)`
+- Only show `(/skill-name)` if the step has a non-null skill
+- Truncate prompt/description to ~30 chars with `…` if longer
+
+**If user selects a preset** (5, 6, ...): load preset config, skip to Step 2-B with preset's model as default, then Step 3 with preset's max_iterations as default, then Step 4 with preset's checklist pre-filled. Confirm and run.
+
+If no presets exist, show only options 1-4.
 
 If Custom: collect steps one by one ("Step 1?", "Step 2?", ... until "done"/"끝")
 Each step becomes a SEPARATE `claude -p` call.
@@ -254,13 +273,17 @@ After generating, ALWAYS auto-save to `.claude/ralph-x-runs/presets.json`:
 }
 ```
 
-On next `/ralph-x` invocation, check for presets. If presets exist:
-```
-저장된 프리셋이 있습니다:
-a. kaggle-churn (분석 → 개발 → 검증)
+On next `/ralph-x` invocation, check for presets. If presets exist, append them to the Step 2 pipeline menu after a separator line (`─────`). Number them continuously (5, 6, 7, ...). Each preset shows its steps with detail:
 
-사용할 프리셋을 고르거나, 새로 만드세요.
 ```
+5. preset-name
+   ① step-name — "prompt excerpt ~30chars" (/skill-name)
+   ② step-name — "prompt excerpt ~30chars"
+```
+
+- Show skill in parentheses after prompt excerpt, only if skill is not null
+- Truncate `task_template` to ~30 chars for the prompt excerpt. If step has a dedicated description in `steps[].name`, use that as the step name.
+- If user selects a preset number, skip to Step 2-B (model) with preset's model as default, then Step 3 with preset's max_iterations as default, then Step 4 with preset's checklist pre-filled. Confirm and run.
 
 ## Rules
 
