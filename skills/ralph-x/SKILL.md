@@ -9,6 +9,31 @@ allowed-tools: [Read, Write, Bash, Glob, Grep]
 
 **Respond in the same language the user uses.** Korean → Korean. English → English.
 
+## 세션 시작 시 자동 마이그레이션
+
+**스킬이 호출되면 가장 먼저** 아래 코드를 실행한다 (사용자 확인 없이 자동):
+
+```bash
+python3 -c "
+import os, shutil
+old = 'ralph-x-runs'
+new = 'ralph-x-runs'
+if os.path.isdir(old):
+    os.makedirs(new, exist_ok=True)
+    for item in os.listdir(old):
+        src = os.path.join(old, item)
+        dst = os.path.join(new, item)
+        if not os.path.exists(dst):
+            shutil.move(src, dst)
+    if not os.listdir(old):
+        os.rmdir(old)
+    print('migrated')
+"
+```
+
+출력이 `migrated`이면: "`ralph-x-runs/`을 `ralph-x-runs/`로 자동 이동했습니다." 한 줄 안내.
+파일이 없으면 조용히 넘어간다.
+
 ## What You Do
 
 You help the user build a multi-step `claude -p` loop. Collect requirements via conversation, generate a bash script, then auto-run it in background.
@@ -21,7 +46,7 @@ Ask: "What task should I work on? / 어떤 작업을 할까요?"
 
 ### Step 2: Pipeline
 
-First, check if `.claude/ralph-x-runs/presets.json` exists and has entries.
+First, check if `ralph-x-runs/presets.json` exists and has entries.
 
 Show the pipeline menu. If presets exist, append them after a separator:
 
@@ -103,17 +128,17 @@ After user confirms, before generating the script:
    - If using a preset, use the preset name as RUN_ID
    - Examples: "유튜브 아이디어 검증" → `youtube-idea-verify`, "Kaggle trial" → `kaggle-trial`
 
-2. **Set RUN_DIR**: `.claude/ralph-x-runs/{RUN_ID}`
+2. **Set RUN_DIR**: `ralph-x-runs/{RUN_ID}`
 
 3. **Check for collision**: If RUN_DIR already exists, append suffix: `-2`, `-3`, etc.
    ```bash
    RUN_ID="<slug>"
-   RUN_DIR=".claude/ralph-x-runs/$RUN_ID"
+   RUN_DIR="ralph-x-runs/$RUN_ID"
    if [ -d "$RUN_DIR" ]; then
      i=2
-     while [ -d ".claude/ralph-x-runs/${RUN_ID}-${i}" ]; do i=$((i+1)); done
+     while [ -d "ralph-x-runs/${RUN_ID}-${i}" ]; do i=$((i+1)); done
      RUN_ID="${RUN_ID}-${i}"
-     RUN_DIR=".claude/ralph-x-runs/$RUN_ID"
+     RUN_DIR="ralph-x-runs/$RUN_ID"
    fi
    ```
 
@@ -129,7 +154,14 @@ After user confirms, before generating the script:
    3. 취소
    ```
 
-5. Create the directory: `mkdir -p "$RUN_DIR"`
+5. **`.gitignore`에 `ralph-x-runs/` 자동 추가** (없으면 생성):
+   ```bash
+   if ! grep -qxF 'ralph-x-runs/' .gitignore 2>/dev/null; then
+     echo 'ralph-x-runs/' >> .gitignore
+   fi
+   ```
+
+6. Create the directory: `mkdir -p "$RUN_DIR"`
 
 ### Step 6: Generate Script
 
@@ -150,7 +182,7 @@ Create `{RUN_DIR}/run.sh` (NOT `.claude/ralph-x-run.sh`):
 
 set -euo pipefail
 
-RUN_DIR=".claude/ralph-x-runs/<run_id>"
+RUN_DIR="ralph-x-runs/<run_id>"
 MODEL="<model>"
 LOG_FILE="$RUN_DIR/log.md"
 CHECKLIST_FILE="$RUN_DIR/checklist.md"
@@ -254,7 +286,7 @@ For conditional steps (e.g., "every 3 iterations"), wrap in an `if`:
 
 #### Step 7-A: claude-p 루프 (기본)
 
-1. Auto-save preset to `.claude/ralph-x-runs/presets.json` (no confirmation)
+1. Auto-save preset to `ralph-x-runs/presets.json` (no confirmation)
 2. Auto-run in background: Use Bash tool with `run_in_background: true` to run `bash {RUN_DIR}/run.sh`
 3. Report: "실행 시작했습니다. 스크립트: `{RUN_DIR}/run.sh`"
 
@@ -278,8 +310,8 @@ Do NOT ask "실행할까요?" — just run it.
      "active": true,
      "session_id": "<SESSION_ID>",
      "run_id": "<RUN_ID>",
-     "run_dir": ".claude/ralph-x-runs/<RUN_ID>",
-     "checklist_file": ".claude/ralph-x-runs/<RUN_ID>/checklist.md",
+     "run_dir": "ralph-x-runs/<RUN_ID>",
+     "checklist_file": "ralph-x-runs/<RUN_ID>/checklist.md",
      "current_iteration": 0,
      "max_iterations": <N>
    }
@@ -330,7 +362,7 @@ checklist 미완 + iter < max 상태에서 대화 종료 시도 시 자동으로
 
 ## Preset System
 
-After generating, ALWAYS auto-save to `.claude/ralph-x-runs/presets.json`:
+After generating, ALWAYS auto-save to `ralph-x-runs/presets.json`:
 
 ```json
 {

@@ -294,7 +294,7 @@ import json, os, sys
 
 project = sys.argv[1]
 old_path = os.path.join(project, '.claude/ralph-x-presets.json')
-new_dir = os.path.join(project, '.claude/ralph-x-runs')
+new_dir = os.path.join(project, 'ralph-x-runs')
 new_path = os.path.join(new_dir, 'presets.json')
 
 if os.path.isfile(old_path) and not os.path.isfile(new_path):
@@ -309,11 +309,11 @@ else:
 " "$fake_project"
 
   # 검증
-  if [ -f "$fake_project/.claude/ralph-x-runs/presets.json" ]; then
+  if [ -f "$fake_project/ralph-x-runs/presets.json" ]; then
     local content
     content=$($PYTHON -c "
 import json
-data = json.load(open('$fake_project/.claude/ralph-x-runs/presets.json'))
+data = json.load(open('$fake_project/ralph-x-runs/presets.json'))
 print('my-preset' in data)
 ")
     if [ "$content" = "True" ]; then
@@ -348,8 +348,8 @@ tc07() {
 EOF
 
   # 신경로에 preset-A (이미 존재)
-  mkdir -p "$fake_project/.claude/ralph-x-runs"
-  cat > "$fake_project/.claude/ralph-x-runs/presets.json" << 'EOF'
+  mkdir -p "$fake_project/ralph-x-runs"
+  cat > "$fake_project/ralph-x-runs/presets.json" << 'EOF'
 {
   "preset-a": {
     "task_template": "a task",
@@ -366,7 +366,7 @@ import json, os, sys
 
 project = sys.argv[1]
 old_path = os.path.join(project, '.claude/ralph-x-presets.json')
-new_path = os.path.join(project, '.claude/ralph-x-runs/presets.json')
+new_path = os.path.join(project, 'ralph-x-runs/presets.json')
 
 if os.path.isfile(old_path) and os.path.isfile(new_path):
     with open(old_path) as f:
@@ -387,7 +387,7 @@ if os.path.isfile(old_path) and os.path.isfile(new_path):
   local result
   result=$($PYTHON -c "
 import json
-data = json.load(open('$fake_project/.claude/ralph-x-runs/presets.json'))
+data = json.load(open('$fake_project/ralph-x-runs/presets.json'))
 print('preset-a' in data and 'preset-b' in data)
 ")
   if [ "$result" = "True" ]; then
@@ -424,7 +424,7 @@ import json, os, sys
 
 project = sys.argv[1]
 old_path = os.path.join(project, '.ralph-x/state.json')
-new_dir = os.path.join(project, '.claude/ralph-x-runs')
+new_dir = os.path.join(project, 'ralph-x-runs')
 new_path = os.path.join(new_dir, 'presets.json')
 
 if os.path.isfile(old_path) and not os.path.isfile(new_path):
@@ -436,11 +436,11 @@ if os.path.isfile(old_path) and not os.path.isfile(new_path):
     print('migrated')
 " "$fake_project"
 
-  if [ -f "$fake_project/.claude/ralph-x-runs/presets.json" ]; then
+  if [ -f "$fake_project/ralph-x-runs/presets.json" ]; then
     local content
     content=$($PYTHON -c "
 import json
-data = json.load(open('$fake_project/.claude/ralph-x-runs/presets.json'))
+data = json.load(open('$fake_project/ralph-x-runs/presets.json'))
 print('old-preset' in data)
 ")
     if [ "$content" = "True" ]; then

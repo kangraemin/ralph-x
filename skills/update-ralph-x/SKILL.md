@@ -53,6 +53,45 @@ bash "<Step 1에서 출력된 SCRIPT 경로>" --check-only
 bash "<Step 1에서 출력된 SCRIPT 경로>" --force
 ```
 
+## Step 4.5: .claude/ralph-x-runs/ 디렉토리 이동
+
+아래 코드를 **그대로** 실행한다:
+
+```bash
+python3 -c "
+import os, shutil, sys
+
+old_dir = '.claude/ralph-x-runs'
+new_dir = 'ralph-x-runs'
+
+if not os.path.isdir(old_dir):
+    print('NO_OLD_DIR')
+    sys.exit(0)
+
+os.makedirs(new_dir, exist_ok=True)
+
+moved = []
+skipped = []
+for item in os.listdir(old_dir):
+    src = os.path.join(old_dir, item)
+    dst = os.path.join(new_dir, item)
+    if os.path.exists(dst):
+        skipped.append(item)
+    else:
+        shutil.move(src, dst)
+        moved.append(item)
+
+print(f'MOVED:{len(moved)} SKIPPED:{len(skipped)}')
+if moved:
+    print('moved: ' + ', '.join(moved))
+if skipped:
+    print('skipped (already exists): ' + ', '.join(skipped))
+"
+```
+
+- `NO_OLD_DIR` → "이동 대상 없음 (.claude/ralph-x-runs/ 없음)"
+- `MOVED:N SKIPPED:M` → 결과 출력 후 "`.claude/ralph-x-runs/`를 삭제할까요?" 확인. 승인 시 `rm -rf .claude/ralph-x-runs`
+
 ## Step 5: 프리셋 마이그레이션
 
 아래 Python 코드를 **그대로** 실행한다:
@@ -62,10 +101,11 @@ python3 -c "
 import json, os, sys
 
 old_paths = [
+    '.claude/ralph-x-runs/presets.json',
     '.claude/ralph-x-presets.json',
     '.ralph-x/state.json',
 ]
-new_dir = '.claude/ralph-x-runs'
+new_dir = 'ralph-x-runs'
 new_path = os.path.join(new_dir, 'presets.json')
 
 # 구경로에서 프리셋 수집
@@ -105,6 +145,7 @@ else:
 
 # 구 아티팩트 목록
 artifacts = [
+    '.claude/ralph-x-runs/presets.json',
     '.claude/ralph-x-presets.json',
     '.claude/ralph-x-run.sh',
     '.claude/ralph-x-log.md',
