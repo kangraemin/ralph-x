@@ -77,12 +77,15 @@ Collect items until done. This becomes a checklist in the prompt.
 
 ### Step 5: Confirm & Generate
 
+Ask: "실행 방식 / Execution mode: 현재 세션에서 직접 실행 (in-session) / claude-p 루프 (기존 백그라운드, 기본값)?"
+
 Show summary:
 ```
 Task: ...
 Model: sonnet
 Pipeline: Step1 → Step2 → Step3
 Iterations: 20
+실행 방식: 현재 세션  (또는 claude-p 루프)
 Checklist:
  - [ ] condition 1
  - [ ] condition 2
@@ -247,11 +250,83 @@ For conditional steps (e.g., "every 3 iterations"), wrap in an `if`:
 
 ### Step 7: Execute
 
+**Branch on execution mode chosen in Step 5.**
+
+#### Step 7-A: claude-p 루프 (기본)
+
 1. Auto-save preset to `.claude/ralph-x-runs/presets.json` (no confirmation)
 2. Auto-run in background: Use Bash tool with `run_in_background: true` to run `bash {RUN_DIR}/run.sh`
 3. Report: "실행 시작했습니다. 스크립트: `{RUN_DIR}/run.sh`"
 
 Do NOT ask "실행할까요?" — just run it.
+
+#### Step 7-B: 현재 세션 실행 (in-session)
+
+1. **session_id 즉시 캡처** (Bash):
+   ```bash
+   SESSION_ID=$(ls -lt ~/.claude/worklogs/.collecting/*.jsonl 2>/dev/null \
+     | awk 'NR==1{print $NF}' | xargs basename | sed 's/\.jsonl//')
+   [ -z "$SESSION_ID" ] && SESSION_ID=$(ls -t ~/.claude/session-env/ 2>/dev/null | head -1)
+   echo "$SESSION_ID"
+   ```
+
+2. `mkdir -p {RUN_DIR}`
+
+3. Write tool로 `{RUN_DIR}/session-state.json` 생성:
+   ```json
+   {
+     "active": true,
+     "session_id": "<SESSION_ID>",
+     "run_id": "<RUN_ID>",
+     "run_dir": ".claude/ralph-x-runs/<RUN_ID>",
+     "checklist_file": ".claude/ralph-x-runs/<RUN_ID>/checklist.md",
+     "current_iteration": 0,
+     "max_iterations": <N>
+   }
+   ```
+
+4. Write tool로 `{RUN_DIR}/checklist.md` 생성 (수집한 완료 조건들):
+   ```
+   - [ ] condition 1
+   - [ ] condition 2
+   ```
+
+5. Write tool로 `{RUN_DIR}/log.md` 생성 (초기화):
+   ```
+   # Ralph-X Work Log
+   Task: <task>
+   Mode: in-session
+   ```
+
+6. **루프 실행** (current_iteration < max_iterations AND checklist 미완인 동안):
+   - `"━━━ Iteration {i}/{MAX} ━━━"` 출력
+   - pipeline 각 step 내용을 **현재 대화에서 직접 수행** (claude -p 호출 금지)
+     - `{RUN_DIR}/log.md` 읽어 이전 컨텍스트 파악
+     - 작업 수행 후 결과를 `{RUN_DIR}/log.md`에 append
+   - `{RUN_DIR}/checklist.md` 갱신 (완료 항목 `[ ]` → `[x]`)
+   - Bash로 `session-state.json` current_iteration 업데이트:
+     ```bash
+     python3 -c "
+     import json; s=json.load(open('{RUN_DIR}/session-state.json'))
+     s['current_iteration']={i}
+     json.dump(s,open('{RUN_DIR}/session-state.json','w'))
+     "
+     ```
+   - checklist 전부 `[x]` 시 break
+
+7. **완료 처리**:
+   - Bash로 `session-state.json` active=false 업데이트:
+     ```bash
+     python3 -c "
+     import json; s=json.load(open('{RUN_DIR}/session-state.json'))
+     s['active']=False
+     json.dump(s,open('{RUN_DIR}/session-state.json','w'))
+     "
+     ```
+   - `"✅ Ralph 루프 완료 ({N}회 반복)"` 출력
+
+**중요**: in-session 모드에서는 stop hook(`ralph-x-gate.sh`)이 `session-state.json`을 감시한다.
+checklist 미완 + iter < max 상태에서 대화 종료 시도 시 자동으로 차단된다.
 
 ## Preset System
 
@@ -287,6 +362,7 @@ On next `/ralph-x` invocation, check for presets. If presets exist, append them 
 
 ## Rules
 
+### claude-p 모드 (Step 7-A)
 - Do NOT start working on the task. You ONLY build the script and run it.
 - Each step = one `claude -p` call. NEVER combine multiple steps into one call.
 - NEVER use `--max-turns` on any `claude -p` call.
@@ -298,3 +374,10 @@ On next `/ralph-x` invocation, check for presets. If presets exist, append them 
 - Step output files go in RUN_DIR: `{RUN_DIR}/stage1.md`, `{RUN_DIR}/stage2.md`, etc.
 - Auto-save preset after generation. Do NOT ask.
 - Auto-run in background after generation. Do NOT ask.
+
+### in-session 모드 (Step 7-B)
+- session_id를 캡처한 즉시 session-state.json에 기록한다. 나중으로 미루지 않는다.
+- 루프 중 claude -p 호출 금지. 현재 대화 컨텍스트에서 직접 수행한다.
+- 매 iteration 후 반드시 session-state.json의 current_iteration을 업데이트한다. (stop hook이 이 값으로 차단 여부 판단)
+- checklist 항목 완료 시 즉시 `[ ]` → `[x]` 로 갱신한다.
+- 루프 완료 후 반드시 active=false 처리한다. (미처리 시 stop hook이 계속 차단)
