@@ -16,7 +16,7 @@ allowed-tools: [Read, Write, Bash, Glob, Grep]
 ```bash
 python3 -c "
 import os, shutil
-old = 'ralph-x-runs'
+old = '.claude/ralph-x-runs'
 new = 'ralph-x-runs'
 if os.path.isdir(old):
     os.makedirs(new, exist_ok=True)
@@ -31,7 +31,7 @@ if os.path.isdir(old):
 "
 ```
 
-출력이 `migrated`이면: "`ralph-x-runs/`을 `ralph-x-runs/`로 자동 이동했습니다." 한 줄 안내.
+출력이 `migrated`이면: "`.claude/ralph-x-runs/`을 `ralph-x-runs/`로 자동 이동했습니다." 한 줄 안내.
 파일이 없으면 조용히 넘어간다.
 
 ## What You Do

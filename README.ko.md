@@ -48,12 +48,12 @@ claude plugin install ralph-x@ralph-x
 ```bash
 cat > "$PROMPT_DIR/step1.txt" << 'S1EOF'
 Current step: 분석 — /browse로 discussion 확인.
-Read .claude/ralph-x-log.md for previous work.
+Read ralph-x-runs/<RUN_ID>/log.md for previous work.
 S1EOF
 
 cat > "$PROMPT_DIR/step2.txt" << 'S2EOF'
 Current step: 개발 — 최적 전략 구현.
-Read .claude/ralph-x-log.md for previous work.
+Read ralph-x-runs/<RUN_ID>/log.md for previous work.
 S2EOF
 
 for i in $(seq 1 15); do
@@ -79,10 +79,10 @@ done
 
 | 파일 | 용도 |
 |---|---|
-| `.claude/ralph-x-run.sh` | 생성된 루프 스크립트 |
-| `.claude/ralph-x-log.md` | 스텝 간 컨텍스트 브릿지 |
-| `.claude/ralph-x-checklist.md` | 완료 조건 추적 |
-| `.claude/ralph-x-presets.json` | 자동 저장된 프리셋 |
+| `ralph-x-runs/<RUN_ID>/run.sh` | 생성된 루프 스크립트 |
+| `ralph-x-runs/<RUN_ID>/log.md` | 스텝 간 컨텍스트 브릿지 |
+| `ralph-x-runs/<RUN_ID>/checklist.md` | 완료 조건 추적 |
+| `ralph-x-runs/presets.json` | 자동 저장된 프리셋 |
 
 ## 라이선스
 

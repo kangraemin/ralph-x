@@ -48,12 +48,12 @@ Ralph-X writes each prompt to a temp file, then calls `claude -p` per step:
 ```bash
 cat > "$PROMPT_DIR/step1.txt" << 'S1EOF'
 Current step: Analyze — use /browse to check discussions.
-Read .claude/ralph-x-log.md for previous work.
+Read ralph-x-runs/<RUN_ID>/log.md for previous work.
 S1EOF
 
 cat > "$PROMPT_DIR/step2.txt" << 'S2EOF'
 Current step: Develop — implement the best strategy.
-Read .claude/ralph-x-log.md for previous work.
+Read ralph-x-runs/<RUN_ID>/log.md for previous work.
 S2EOF
 
 for i in $(seq 1 15); do
@@ -79,10 +79,10 @@ done
 
 | File | Purpose |
 |---|---|
-| `.claude/ralph-x-run.sh` | Generated loop script |
-| `.claude/ralph-x-log.md` | Context bridge between steps |
-| `.claude/ralph-x-checklist.md` | Completion tracking |
-| `.claude/ralph-x-presets.json` | Auto-saved presets |
+| `ralph-x-runs/<RUN_ID>/run.sh` | Generated loop script |
+| `ralph-x-runs/<RUN_ID>/log.md` | Context bridge between steps |
+| `ralph-x-runs/<RUN_ID>/checklist.md` | Completion tracking |
+| `ralph-x-runs/presets.json` | Auto-saved presets |
 
 ## License
 
