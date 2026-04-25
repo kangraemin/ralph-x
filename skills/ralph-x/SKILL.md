@@ -44,6 +44,14 @@ You help the user build a multi-step `claude -p` loop. Collect requirements via 
 
 Ask: "What task should I work on? / 어떤 작업을 할까요?"
 
+### Step 1-B: Execution Mode
+
+Ask: "실행 방식을 선택하세요 / Choose execution mode:
+1. claude-p 루프 — 백그라운드 스크립트 실행 (기본값)
+2. in-session — 현재 대화에서 직접 실행"
+
+기본값: 1 (claude-p)
+
 ### Step 2: Pipeline
 
 First, check if `ralph-x-runs/presets.json` exists and has entries.
@@ -72,7 +80,7 @@ Each step line: `① {step name} — "{task_template or step description, trunca
 - Only show `(/skill-name)` if the step has a non-null skill
 - Truncate prompt/description to ~30 chars with `…` if longer
 
-**If user selects a preset** (5, 6, ...): load preset config, skip to Step 2-B with preset's model as default, then Step 3 with preset's max_iterations as default, then Step 4 with preset's checklist pre-filled. Confirm and run.
+**If user selects a preset** (5, 6, ...): load preset config, skip to Step 2-B (claude-p 모드일 때만) with preset's model as default, then Step 3 with preset's max_iterations as default, then Step 4 with preset's checklist pre-filled. Confirm and run.
 
 If no presets exist, show only options 1-4.
 
@@ -80,7 +88,7 @@ If Custom: collect steps one by one ("Step 1?", "Step 2?", ... until "done"/"끝
 Each step becomes a SEPARATE `claude -p` call.
 Ask if there's a skill to use per step (e.g., /browse, /review, /test, or skip)
 
-### Step 2-B: Model
+### Step 2-B: Model (claude-p 모드일 때만 / skip if in-session)
 
 Ask: "어떤 모델로 돌릴까요? (기본: sonnet) / Which model? (default: sonnet)"
 
@@ -101,8 +109,6 @@ Ask: "완료 조건을 하나씩 알려주세요 (끝나면 '끝') / Add complet
 Collect items until done. This becomes a checklist in the prompt.
 
 ### Step 5: Confirm & Generate
-
-Ask: "실행 방식 / Execution mode: 현재 세션에서 직접 실행 (in-session) / claude-p 루프 (기존 백그라운드, 기본값)?"
 
 Show summary:
 ```
@@ -282,7 +288,7 @@ For conditional steps (e.g., "every 3 iterations"), wrap in an `if`:
 
 ### Step 7: Execute
 
-**Branch on execution mode chosen in Step 5.**
+**Branch on execution mode chosen in Step 1-B.**
 
 #### Step 7-A: claude-p 루프 (기본)
 
@@ -390,7 +396,7 @@ On next `/ralph-x` invocation, check for presets. If presets exist, append them 
 
 - Show skill in parentheses after prompt excerpt, only if skill is not null
 - Truncate `task_template` to ~30 chars for the prompt excerpt. If step has a dedicated description in `steps[].name`, use that as the step name.
-- If user selects a preset number, skip to Step 2-B (model) with preset's model as default, then Step 3 with preset's max_iterations as default, then Step 4 with preset's checklist pre-filled. Confirm and run.
+- If user selects a preset number, skip to Step 2-B (claude-p 모드일 때만) with preset's model as default, then Step 3 with preset's max_iterations as default, then Step 4 with preset's checklist pre-filled. Confirm and run.
 
 ## Rules
 
