@@ -419,3 +419,28 @@ On next `/ralph-x` invocation, check for presets. If presets exist, append them 
 - 매 iteration 후 반드시 session-state.json의 current_iteration을 업데이트한다. (stop hook이 이 값으로 차단 여부 판단)
 - checklist 항목 완료 시 즉시 `[ ]` → `[x]` 로 갱신한다.
 - 루프 완료 후 반드시 active=false 처리한다. (미처리 시 stop hook이 계속 차단)
+
+### in-session 모드 — 절대 멈추지 않는다 (필수 규칙)
+
+ralph-x in-session 루프는 **종료 조건 도달 전까지 절대 멈추지 않는다.**
+
+**종료 조건은 단 두 가지** (둘 다 충족 필요 X — 둘 중 하나라도):
+1. `session-state.json`의 `current_iteration >= max_iterations`
+2. `checklist.md`의 모든 항목 `[x]`
+
+그 외 어떤 상황에서도 루프를 멈추지 않는다. 결과가 fail이든, 가설이 막혀 보이든, 사용자가 질문/comment를 보내든 — **무조건 같은 응답 안에서 다음 iter를 Write/Bash로 즉시 진행한다.**
+
+**금지 행동**:
+- "어떻게 갈지 정해주면", "어떤 방향으로?", "계속 진행할까요?", "이거 의미 있나" 등 **사용자 컨펌 요청**
+- 결과 보고 후 응답 종료 (사용자 답 기다리기)
+- fail N개 누적 후 "남은 X개 같은 패턴 반복 무의미" 자체 판단으로 멈춤
+- "방향 전환 필요", "더 시도해도 무의미할 것" 같은 메타 판단으로 정지
+- 같은 응답에서 결과 보고만 하고 다음 iter 코드 안 쓰는 행위
+
+**필수 행동**:
+- 결과 짧게 보고 → **같은 응답 안에서** 다음 iter Write/Bash 즉시 실행
+- 가설 막히면 시도 안 한 영역 자체 발굴 (사용자 안 묻고): 다른 자산군, 다른 timeframe, 다른 confirm 인자, 매크로 이벤트, 페어 통계차익, ML 분류 등
+- 수정 필요하면 자체 판단으로 수정
+- 결과 짜내기 (의미 있는 발견 자체 판단 후 log.md/checklist.md에 기록)
+
+**why**: 사용자가 명시적으로 박은 룰 — "갯수+체크리스트 다 채울 때까지 사용자 컨펌 절대 받지 말고 니 알아서 판단·수정·결과 내라". 이 룰을 어기고 멈추면 사용자가 매번 짜증내고 같은 지적 반복. stop hook 인프라(`ralph-x-gate.sh`)는 LLM이 멈출 때 "계속 진행" 메시지를 띄우지만, LLM 자체가 "fail 누적 → 의미 없음 → 사용자 컨펌" 패턴으로 자체 정지하면 hook으로 못 막는다. 따라서 LLM 룰 강제.
