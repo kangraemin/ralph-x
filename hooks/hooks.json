@@ -1,0 +1,6 @@
+{
+  "description": "Ralph-X in-session loop stop hook — blocks session end while loop is active",
+  "Stop": [
+    {"file": "ralph-x-gate.sh", "type": "managed"}
+  ]
+}
